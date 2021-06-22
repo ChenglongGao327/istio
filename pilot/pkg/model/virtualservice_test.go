@@ -1391,7 +1391,7 @@ func TestHasConflict(t *testing.T) {
 					MatchType: &networking.StringMatch_Prefix{Prefix: "/productpage/v2"},
 				},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "match uri",
