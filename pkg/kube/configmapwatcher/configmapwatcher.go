@@ -34,6 +34,8 @@ import (
 	"istio.io/pkg/log"
 )
 
+const ResyncInterval = 0
+
 // Controller watches a ConfigMap and calls the given callback when the ConfigMap changes.
 // The ConfigMap is passed to the callback, or nil if it doesn't exist.
 type Controller struct {
@@ -58,7 +60,7 @@ func NewController(client kube.Client, namespace, name string, callback func(*v1
 
 	// Although using a separate informer factory isn't ideal,
 	// this does so to limit watching to only the specified ConfigMap.
-	c.informer = informers.NewSharedInformerFactoryWithOptions(client.Kube(), 12*time.Hour,
+	c.informer = informers.NewSharedInformerFactoryWithOptions(client.Kube(), ResyncInterval,
 		informers.WithNamespace(namespace),
 		informers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
 			listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", name).String()
