@@ -731,7 +731,7 @@ func (s *DiscoveryServer) Debug(w http.ResponseWriter, req *http.Request) {
 
 	if err := indexTmpl.Execute(w, deps); err != nil {
 		istiolog.Errorf("Error in rendering index template %v", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 

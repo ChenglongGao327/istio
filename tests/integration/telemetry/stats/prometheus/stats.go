@@ -18,6 +18,7 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"testing"
 
@@ -369,7 +370,7 @@ func buildQuery(sourceCluster string) (sourceQuery, destinationQuery, appQuery s
 	ns := GetAppNamespace()
 	labels := map[string]string{
 		"request_protocol":               "http",
-		"response_code":                  "200",
+		"response_code":                  http.StatusOK,
 		"destination_app":                "server",
 		"destination_version":            "v1",
 		"destination_service":            "server." + ns.Name() + ".svc.cluster.local",
@@ -390,7 +391,7 @@ func buildOutOfMeshServerQuery(sourceCluster string) string {
 	ns := GetAppNamespace()
 	labels := map[string]string{
 		"request_protocol": "http",
-		"response_code":    "200",
+		"response_code":    http.StatusOK,
 		// For out of mesh server, client side metrics rely on endpoint resource metadata
 		// to fill in workload labels. To limit size of endpoint resource, we only populate
 		// workload name and namespace, canonical service name and version in endpoint metadata.
