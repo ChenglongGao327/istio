@@ -199,6 +199,8 @@ func NewDiscoveryServer(env *model.Environment, plugins []string, instanceID str
 
 	out.ConfigGenerator = core.NewConfigGenerator(plugins, out.Cache)
 
+	log.Infof("============discovery=%v", out)
+
 	return out
 }
 

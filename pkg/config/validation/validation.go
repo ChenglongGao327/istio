@@ -1611,14 +1611,40 @@ func ValidateProxyConfig(config *meshconfig.ProxyConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid proxy admin port:"))
 	}
 
-	switch config.ControlPlaneAuthPolicy {
-	case meshconfig.AuthenticationPolicy_NONE, meshconfig.AuthenticationPolicy_MUTUAL_TLS:
-	default:
-		errs = multierror.Append(errs,
-			fmt.Errorf("unrecognized control plane auth policy %q", config.ControlPlaneAuthPolicy))
+	if err := ValidateControlPlaneAuthPolicy(config.ControlPlaneAuthPolicy); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, fmt.Sprintf("invalid authentication polic:")))
+	}
+
+	if err := ValidateStatNameLength(config.StatNameLength); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, fmt.Sprintf("invalid name:")))
+	}
+
+	if err := ValidatePort(int(config.StatusPort)); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, fmt.Sprintf("invalid status port:")))
 	}
 
 	return
+}
+
+func ValidateStatNameLength(len int32) error {
+	var defaultMaxLength = int32(189)
+	if 1 <= len && len <= defaultMaxLength {
+		return nil
+	}
+	if defaultMaxLength < len && len <= 256 {
+		scope.Warnf("the length of name is %d characters, "+
+			"Envoy's internal metrics take up 67 characters by default, for a total of 256 character name per metric."+
+			"The value must be less 189 characters if the metrics from Envoys are not truncated", len)
+		return nil
+	}
+	return fmt.Errorf("the length of name is %d characters, must be in the range 1..256", len)
+}
+
+func ValidateControlPlaneAuthPolicy(policy meshconfig.AuthenticationPolicy) error {
+	if policy == meshconfig.AuthenticationPolicy_NONE || policy == meshconfig.AuthenticationPolicy_MUTUAL_TLS {
+		return nil
+	}
+	return fmt.Errorf("unrecognized control plane auth policy %q", policy)
 }
 
 func validateWorkloadSelector(selector *type_beta.WorkloadSelector) error {

@@ -56,5 +56,6 @@ func validateFlags(serverArgs *bootstrap.PilotArgs) error {
 	_, err := bootstrap.TLSCipherSuites(serverArgs.ServerOptions.TLSOptions.TLSCipherSuites)
 
 	// TODO: add validation for other flags
+
 	return err
 }
