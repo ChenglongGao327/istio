@@ -43,9 +43,9 @@ func DefaultProxyConfig() meshconfig.ProxyConfig {
 		DrainDuration:            types.DurationProto(45 * time.Second),
 		ParentShutdownDuration:   types.DurationProto(60 * time.Second),
 		TerminationDrainDuration: types.DurationProto(5 * time.Second),
-		ProxyAdminPort:           150010,
+		ProxyAdminPort:           15001,
 		Concurrency:              &types.Int32Value{Value: 2},
-		ControlPlaneAuthPolicy:   meshconfig.AuthenticationPolicy_INHERIT,
+		ControlPlaneAuthPolicy:   meshconfig.AuthenticationPolicy_MUTUAL_TLS,
 		DiscoveryAddress:         "istiod.istio-system.svc:15012",
 		Tracing: &meshconfig.Tracing{
 			Tracer: &meshconfig.Tracing_Zipkin_{
@@ -57,8 +57,8 @@ func DefaultProxyConfig() meshconfig.ProxyConfig {
 
 		// Code defaults
 		BinaryPath:     constants.BinaryPathFilename,
-		StatNameLength: 299,
-		StatusPort:     150201,
+		StatNameLength: 189,
+		StatusPort:     15020,
 	}
 }
 

@@ -1474,6 +1474,39 @@ func ValidateMeshConfig(mesh *meshconfig.MeshConfig) (errs error) {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid proxy listen port:"))
 	}
 
+	if mesh.ProxyHttpPort != 0 {
+		if err := ValidatePort(int(mesh.ProxyHttpPort)); err != nil {
+			errs = multierror.Append(errs, multierror.Prefix(err, "invalid proxy http port:"))
+		}
+	}
+
+	if err := validateIngressControllerMode(mesh.IngressControllerMode); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid ingress controller mode:"))
+	}
+
+	if err := validateAccessLogEncoding(mesh.AccessLogEncoding); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid access log encoding:"))
+	}
+
+	if err := validateOutboundTrafficPolicy(mesh.OutboundTrafficPolicy); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid outbound traffic policy:"))
+	}
+
+	if err := validateDefaultServiceExportTo(mesh.DefaultServiceExportTo); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid default service exportTo policy:"))
+	}
+
+	if err := validateDefaultVirtualServiceExportTo(mesh.DefaultVirtualServiceExportTo); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid default virtual service exportTo policy:"))
+	}
+
+	if err := validateDefaultDestinationRuleExportTo(mesh.DefaultDestinationRuleExportTo); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid default virtual service exportTo policy:"))
+	}
+	if err := validateH2UpgradePolicy(mesh.H2UpgradePolicy); err != nil {
+		errs = multierror.Append(errs, multierror.Prefix(err, "invalid H2 Upgrade policy:"))
+	}
+
 	if err := ValidateConnectTimeout(mesh.ConnectTimeout); err != nil {
 		errs = multierror.Append(errs, multierror.Prefix(err, "invalid connect timeout:"))
 	}
@@ -1505,6 +1538,78 @@ func ValidateMeshConfig(mesh *meshconfig.MeshConfig) (errs error) {
 	}
 
 	return
+}
+
+func validateIngressControllerMode(mode meshconfig.MeshConfig_IngressControllerMode) error {
+	if mode == meshconfig.MeshConfig_UNSPECIFIED ||
+		mode == meshconfig.MeshConfig_OFF ||
+		mode == meshconfig.MeshConfig_DEFAULT ||
+		mode == meshconfig.MeshConfig_STRICT {
+		return nil
+	}
+	return fmt.Errorf("unrecognized ingress controller mode %q", mode)
+}
+
+func validateAccessLogEncoding(encoding meshconfig.MeshConfig_AccessLogEncoding) error {
+	if encoding == meshconfig.MeshConfig_TEXT || encoding == meshconfig.MeshConfig_JSON {
+		return nil
+	}
+	return fmt.Errorf("unrecognized access log encoding %q", encoding)
+}
+
+func validateOutboundTrafficPolicy(policy *meshconfig.MeshConfig_OutboundTrafficPolicy) error {
+	if policy.Mode == meshconfig.MeshConfig_OutboundTrafficPolicy_REGISTRY_ONLY ||
+		policy.Mode == meshconfig.MeshConfig_OutboundTrafficPolicy_ALLOW_ANY {
+		return nil
+	}
+	return fmt.Errorf("unrecognized outbound traffic policy %q", policy.Mode)
+
+}
+
+func validateDefaultServiceExportTo(modes []string) error {
+	for _, mode := range modes {
+		m := visibility.Instance(mode)
+		switch m {
+		case visibility.Public, visibility.Private, visibility.None:
+
+		default:
+			return fmt.Errorf("unrecognized default service exportTo policy %q", mode)
+		}
+	}
+	return nil
+}
+
+func validateDefaultVirtualServiceExportTo(modes []string) error {
+	for _, mode := range modes {
+		m := visibility.Instance(mode)
+		switch m {
+		case visibility.Public, visibility.Private, visibility.None:
+
+		default:
+			return fmt.Errorf("unrecognized default virtual service exportTo policy %q", mode)
+		}
+	}
+	return nil
+}
+
+func validateDefaultDestinationRuleExportTo(modes []string) error {
+	for _, mode := range modes {
+		m := visibility.Instance(mode)
+		switch m {
+		case visibility.Public, visibility.Private, visibility.None:
+
+		default:
+			return fmt.Errorf("unrecognized default destination rule exportTo policy %q", mode)
+		}
+	}
+	return nil
+}
+
+func validateH2UpgradePolicy(policy meshconfig.MeshConfig_H2UpgradePolicy) error {
+	if policy == meshconfig.MeshConfig_DO_NOT_UPGRADE || policy == meshconfig.MeshConfig_UPGRADE {
+		return nil
+	}
+	return fmt.Errorf("unrecognized H2 upgrade policy %q", policy)
 }
 
 func validateTrustDomainConfig(config *meshconfig.MeshConfig) (errs error) {
@@ -3182,6 +3287,12 @@ func validateLocalityLbSetting(lb *networking.LocalityLoadBalancerSetting) error
 	return nil
 }
 
+const (
+	regionIndex int = iota
+	zoneIndex
+	subZoneIndex
+)
+
 func validateLocalities(localities []string) error {
 	regionZoneSubZoneMap := map[string]map[string]map[string]bool{}
 
@@ -3192,6 +3303,7 @@ func validateLocalities(localities []string) error {
 			}
 		}
 
+		var region, zone, subZone string
 		items := strings.SplitN(locality, "/", 3)
 		for _, item := range items {
 			if item == "" {
@@ -3201,42 +3313,46 @@ func validateLocalities(localities []string) error {
 		if _, ok := regionZoneSubZoneMap["*"]; ok {
 			return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 		}
+		region = items[regionIndex]
 		switch len(items) {
-		case 1:
-			if _, ok := regionZoneSubZoneMap[items[0]]; ok {
+		case regionIndex:
+			if _, ok := regionZoneSubZoneMap[region]; ok {
 				return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 			}
-			regionZoneSubZoneMap[items[0]] = map[string]map[string]bool{"*": {"*": true}}
-		case 2:
-			if _, ok := regionZoneSubZoneMap[items[0]]; ok {
-				if _, ok := regionZoneSubZoneMap[items[0]]["*"]; ok {
+			regionZoneSubZoneMap[region] = map[string]map[string]bool{"*": {"*": true}}
+		case zoneIndex:
+			zone = items[zoneIndex]
+			if _, ok := regionZoneSubZoneMap[region]; ok {
+				if _, ok := regionZoneSubZoneMap[region]["*"]; ok {
 					return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 				}
-				if _, ok := regionZoneSubZoneMap[items[0]][items[1]]; ok {
+				if _, ok := regionZoneSubZoneMap[region][zone]; ok {
 					return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 				}
-				regionZoneSubZoneMap[items[0]][items[1]] = map[string]bool{"*": true}
+				regionZoneSubZoneMap[region][zone] = map[string]bool{"*": true}
 			} else {
-				regionZoneSubZoneMap[items[0]] = map[string]map[string]bool{items[1]: {"*": true}}
+				regionZoneSubZoneMap[region] = map[string]map[string]bool{zone: {"*": true}}
 			}
-		case 3:
-			if _, ok := regionZoneSubZoneMap[items[0]]; ok {
-				if _, ok := regionZoneSubZoneMap[items[0]]["*"]; ok {
+		case subZoneIndex:
+			zone = items[zoneIndex]
+			subZone = items[subZoneIndex]
+			if _, ok := regionZoneSubZoneMap[region]; ok {
+				if _, ok := regionZoneSubZoneMap[region]["*"]; ok {
 					return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 				}
-				if _, ok := regionZoneSubZoneMap[items[0]][items[1]]; ok {
-					if regionZoneSubZoneMap[items[0]][items[1]]["*"] {
+				if _, ok := regionZoneSubZoneMap[region][zone]; ok {
+					if regionZoneSubZoneMap[region][zone]["*"] {
 						return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 					}
-					if regionZoneSubZoneMap[items[0]][items[1]][items[2]] {
+					if regionZoneSubZoneMap[region][zone][subZone] {
 						return fmt.Errorf("locality %s overlap with previous specified ones", locality)
 					}
-					regionZoneSubZoneMap[items[0]][items[1]][items[2]] = true
+					regionZoneSubZoneMap[region][zone][subZone] = true
 				} else {
-					regionZoneSubZoneMap[items[0]][items[1]] = map[string]bool{items[2]: true}
+					regionZoneSubZoneMap[region][zone] = map[string]bool{subZone: true}
 				}
 			} else {
-				regionZoneSubZoneMap[items[0]] = map[string]map[string]bool{items[1]: {items[2]: true}}
+				regionZoneSubZoneMap[region] = map[string]map[string]bool{zone: {subZone: true}}
 			}
 		}
 	}
