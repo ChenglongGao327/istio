@@ -226,14 +226,12 @@ func convertEndpoint(service *model.Service, servicePort *networking.Port,
 	endpoint *networking.WorkloadEntry, wleck *configKey) *model.ServiceInstance {
 	var instancePort uint32
 	addr := endpoint.GetAddress()
+	// priority level: unixAddress > we.ports > se.port.targetPort > se.port.number
 	if strings.HasPrefix(addr, model.UnixAddressPrefix) {
 		instancePort = 0
 		addr = strings.TrimPrefix(addr, model.UnixAddressPrefix)
-	} else if len(endpoint.Ports) > 0 { // endpoint port map takes precedence
-		instancePort = endpoint.Ports[servicePort.Name]
-		if instancePort == 0 {
-			instancePort = servicePort.Number
-		}
+	} else if port, ok := endpoint.Ports[servicePort.Name]; ok && port > 0 {
+		instancePort = port
 	} else if servicePort.TargetPort > 0 {
 		instancePort = servicePort.TargetPort
 	} else {
