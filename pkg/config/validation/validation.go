@@ -1185,7 +1185,7 @@ func validateOutlierDetection(outlier *networking.OutlierDetection) (errs Valida
 	}
 
 	if outlier.BaseEjectionTime != nil {
-		errs = appendValidation(errs, ValidateDurationGogo(outlier.BaseEjectionTime))
+		errs = appendValidation(errs, ValidateDuration(outlier.BaseEjectionTime))
 	}
 	if outlier.ConsecutiveErrors != 0 {
 		warn := "outlier detection consecutive errors is deprecated, use consecutiveGatewayErrors or consecutive5xxErrors instead"
@@ -1197,7 +1197,7 @@ func validateOutlierDetection(outlier *networking.OutlierDetection) (errs Valida
 		errs = appendValidation(errs, errors.New(err))
 	}
 	if outlier.Interval != nil {
-		errs = appendValidation(errs, ValidateDurationGogo(outlier.Interval))
+		errs = appendValidation(errs, ValidateDuration(outlier.Interval))
 	}
 	errs = appendValidation(errs, ValidatePercent(outlier.MaxEjectionPercent), ValidatePercent(outlier.MinHealthPercent))
 
@@ -1226,7 +1226,7 @@ func validateConnectionPool(settings *networking.ConnectionPoolSettings) (errs e
 			errs = appendErrors(errs, fmt.Errorf("max retries must be non-negative"))
 		}
 		if httpSettings.IdleTimeout != nil {
-			errs = appendErrors(errs, ValidateDurationGogo(httpSettings.IdleTimeout))
+			errs = appendErrors(errs, ValidateDuration(httpSettings.IdleTimeout))
 		}
 		if httpSettings.H2UpgradePolicy == networking.ConnectionPoolSettings_HTTPSettings_UPGRADE && httpSettings.UseClientProtocol {
 			errs = appendErrors(errs, fmt.Errorf("use client protocol must not be true when H2UpgradePolicy is UPGRADE"))
@@ -1238,7 +1238,15 @@ func validateConnectionPool(settings *networking.ConnectionPoolSettings) (errs e
 			errs = appendErrors(errs, fmt.Errorf("max connections must be non-negative"))
 		}
 		if tcp.ConnectTimeout != nil {
-			errs = appendErrors(errs, ValidateDurationGogo(tcp.ConnectTimeout))
+			errs = appendErrors(errs, ValidateDuration(tcp.ConnectTimeout))
+		}
+		if tcp.TcpKeepalive != nil {
+			if tcp.TcpKeepalive.Time != nil {
+				errs = appendErrors(errs, ValidateDuration(tcp.TcpKeepalive.Time))
+			}
+			if tcp.TcpKeepalive.Interval != nil {
+				errs = appendErrors(errs, ValidateDuration(tcp.TcpKeepalive.Interval))
+			}
 		}
 	}
 
@@ -1250,6 +1258,9 @@ func validateLoadBalancer(settings *networking.LoadBalancerSettings) (errs error
 		return
 	}
 
+	if settings.GetSimple() != 0 && settings.GetConsistentHash() != nil {
+		errs = appendErrors(errs, fmt.Errorf("can not simultaneously specify 'simple' and 'consistentHash'"))
+	}
 	// simple load balancing is always valid
 
 	consistentHash := settings.GetConsistentHash()
@@ -1293,6 +1304,18 @@ func validateTLS(settings *networking.ClientTLSSettings) (errs error) {
 		}
 		if settings.PrivateKey == "" {
 			errs = appendErrors(errs, fmt.Errorf("private key required for mutual tls"))
+		}
+	}
+
+	if settings.Mode == networking.ClientTLSSettings_ISTIO_MUTUAL {
+		if settings.ClientCertificate != "" {
+			errs = appendErrors(errs, fmt.Errorf("clientCertificate Should be empty if mode is ISTIO_MUTUAL"))
+		}
+		if settings.PrivateKey != "" {
+			errs = appendErrors(errs, fmt.Errorf("private key Should be empty if mode is ISTIO_MUTUAL"))
+		}
+		if settings.CaCertificates != "" {
+			errs = appendErrors(errs, fmt.Errorf("caCertificates Should be empty if mode is ISTIO_MUTUAL"))
 		}
 	}
 
@@ -1347,21 +1370,6 @@ func ValidateProxyAddress(hostAddr string) error {
 		}
 	}
 
-	return nil
-}
-
-// ValidateDurationGogo checks that a gogo proto duration is well-formed
-func ValidateDurationGogo(pd *types.Duration) error {
-	dur, err := types.DurationFromProto(pd)
-	if err != nil {
-		return err
-	}
-	if dur < time.Millisecond {
-		return errors.New("duration must be greater than 1ms")
-	}
-	if dur%time.Millisecond != 0 {
-		return errors.New("only durations to ms precision are supported")
-	}
 	return nil
 }
 
@@ -2603,7 +2611,7 @@ func validateCORSPolicy(policy *networking.CorsPolicy) (errs error) {
 	}
 
 	if policy.MaxAge != nil {
-		errs = appendErrors(errs, ValidateDurationGogo(policy.MaxAge))
+		errs = appendErrors(errs, ValidateDuration(policy.MaxAge))
 		if policy.MaxAge.Nanos > 0 {
 			errs = multierror.Append(errs, errors.New("max_age duration is accurate only to seconds precision"))
 		}
@@ -2687,9 +2695,9 @@ func validateHTTPFaultInjectionDelay(delay *networking.HTTPFaultInjection_Delay)
 
 	switch v := delay.HttpDelayType.(type) {
 	case *networking.HTTPFaultInjection_Delay_FixedDelay:
-		errs = appendErrors(errs, ValidateDurationGogo(v.FixedDelay))
+		errs = appendErrors(errs, ValidateDuration(v.FixedDelay))
 	case *networking.HTTPFaultInjection_Delay_ExponentialDelay:
-		errs = appendErrors(errs, ValidateDurationGogo(v.ExponentialDelay))
+		errs = appendErrors(errs, ValidateDuration(v.ExponentialDelay))
 		errs = multierror.Append(errs, fmt.Errorf("exponentialDelay not supported yet"))
 	}
 
@@ -2752,7 +2760,7 @@ func validateHTTPRetry(retries *networking.HTTPRetry) (errs error) {
 	}
 
 	if retries.PerTryTimeout != nil {
-		errs = appendErrors(errs, ValidateDurationGogo(retries.PerTryTimeout))
+		errs = appendErrors(errs, ValidateDuration(retries.PerTryTimeout))
 	}
 	if retries.RetryOn != "" {
 		retryOnPolicies := strings.Split(retries.RetryOn, ",")
@@ -3164,6 +3172,9 @@ func validateLocalityLbSetting(lb *networking.LocalityLoadBalancerSetting) error
 
 	srcLocalities := make([]string, 0, len(lb.GetDistribute()))
 	for _, locality := range lb.GetDistribute() {
+		if locality.From == "" || locality.To == nil {
+			return fmt.Errorf("locality lb distribute settings must simultaneously specify From and To")
+		}
 		srcLocalities = append(srcLocalities, locality.From)
 		var totalWeight uint32
 		destLocalities := make([]string, 0)
@@ -3187,6 +3198,13 @@ func validateLocalityLbSetting(lb *networking.LocalityLoadBalancerSetting) error
 	}
 
 	for _, failover := range lb.GetFailover() {
+		if failover.From == "" || failover.To == "" {
+			return fmt.Errorf("locality lb failover settings must simultaneously specify From and To")
+		}
+		if len(strings.SplitN(failover.From, "/", 3)) > 1 ||
+			len(strings.SplitN(failover.To, "/", 3)) > 1 {
+			return fmt.Errorf("locality lb failover settings only different regions can be set")
+		}
 		if failover.From == failover.To {
 			return fmt.Errorf("locality lb failover settings must specify different regions")
 		}

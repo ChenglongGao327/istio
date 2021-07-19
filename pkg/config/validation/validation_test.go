@@ -1401,7 +1401,7 @@ func TestValidateTLS(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "SIMPLE CredentialName set with ClientCertificate specified",
+			name: "SIMPLE: CredentialName set with ClientCertificate specified",
 			tls: &networking.ClientTLSSettings{
 				Mode:              networking.ClientTLSSettings_SIMPLE,
 				CredentialName:    "credential",
@@ -1445,7 +1445,7 @@ func TestValidateTLS(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "MUTUAL CredentialName set with ClientCertificate specified",
+			name: "MUTUAL: CredentialName set with ClientCertificate specified",
 			tls: &networking.ClientTLSSettings{
 				Mode:              networking.ClientTLSSettings_MUTUAL,
 				CredentialName:    "credential",
@@ -1501,6 +1501,36 @@ func TestValidateTLS(t *testing.T) {
 				Mode:              networking.ClientTLSSettings_MUTUAL,
 				ClientCertificate: "",
 				PrivateKey:        "key",
+			},
+			valid: false,
+		},
+		{
+			name: "ISTIO_MUTUAL: ClientCertificate PrivateKey and CaCertificates specified",
+			tls: &networking.ClientTLSSettings{
+				Mode:              networking.ClientTLSSettings_ISTIO_MUTUAL,
+				ClientCertificate: "",
+				PrivateKey:        "",
+				CaCertificates:    "ca",
+			},
+			valid: false,
+		},
+		{
+			name: "ISTIO_MUTUAL: ClientCertificate PrivateKey and CaCertificates specified",
+			tls: &networking.ClientTLSSettings{
+				Mode:              networking.ClientTLSSettings_ISTIO_MUTUAL,
+				ClientCertificate: "certificate",
+				PrivateKey:        "",
+				CaCertificates:    "",
+			},
+			valid: false,
+		},
+		{
+			name: "ISTIO_MUTUAL: ClientCertificate PrivateKey and CaCertificates specified",
+			tls: &networking.ClientTLSSettings{
+				Mode:              networking.ClientTLSSettings_ISTIO_MUTUAL,
+				ClientCertificate: "",
+				PrivateKey:        "key",
+				CaCertificates:    "",
 			},
 			valid: false,
 		},
@@ -3302,6 +3332,20 @@ func TestValidateConnectionPool(t *testing.T) {
 
 		{
 			name: "invalid connection pool, bad idle timeout", in: networking.ConnectionPoolSettings{
+				Http: &networking.ConnectionPoolSettings_HTTPSettings{IdleTimeout: &types.Duration{Seconds: 30, Nanos: 5}},
+			},
+			valid: false,
+		},
+
+		{
+			name: "invalid connection pool, bad tcp keepalive time", in: networking.ConnectionPoolSettings{
+				Http: &networking.ConnectionPoolSettings_HTTPSettings{IdleTimeout: &types.Duration{Seconds: 30, Nanos: 5}},
+			},
+			valid: false,
+		},
+
+		{
+			name: "invalid connection pool, bad tcp keepalive interval", in: networking.ConnectionPoolSettings{
 				Http: &networking.ConnectionPoolSettings_HTTPSettings{IdleTimeout: &types.Duration{Seconds: 30, Nanos: 5}},
 			},
 			valid: false,
@@ -5733,7 +5777,31 @@ func TestValidateLocalityLbSetting(t *testing.T) {
 			in:    nil,
 			valid: true,
 		},
-
+		{
+			name: "invalid LocalityLoadBalancerSetting_Distribute From is not set",
+			in: &networking.LocalityLoadBalancerSetting{
+				Distribute: []*networking.LocalityLoadBalancerSetting_Distribute{
+					{
+						To: map[string]uint32{
+							"a/b/c": 80,
+							"a/b1":  25,
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid LocalityLoadBalancerSetting_Distribute To is not set",
+			in: &networking.LocalityLoadBalancerSetting{
+				Distribute: []*networking.LocalityLoadBalancerSetting_Distribute{
+					{
+						From: "a/b/c",
+					},
+				},
+			},
+			valid: false,
+		},
 		{
 			name: "invalid LocalityLoadBalancerSetting_Distribute total weight > 100",
 			in: &networking.LocalityLoadBalancerSetting{
@@ -5812,6 +5880,76 @@ func TestValidateLocalityLbSetting(t *testing.T) {
 				},
 			},
 			valid: false,
+		},
+		{
+			name: "invalid failover dst is not set ",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						From: "/region1",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid failover src is not set ",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						To: "/region2",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid failover src and dst regions start or end with / ",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						From: "/region1",
+						To:   "region1/",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid failover src and dst have specify zone",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						From: "/region1/zone1",
+						To:   "/region2",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid failover dst have '*'",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						From: "region1",
+						To:   "region*",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "valid failover src and dst",
+			in: &networking.LocalityLoadBalancerSetting{
+				Failover: []*networking.LocalityLoadBalancerSetting_Failover{
+					{
+						From: "region1",
+						To:   "region2",
+					},
+				},
+			},
+			valid: true,
 		},
 	}
 
