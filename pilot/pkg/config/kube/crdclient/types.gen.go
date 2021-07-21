@@ -25,6 +25,7 @@ import (
 	"context"
 	"fmt"
 	metav1alpha1 "istio.io/api/meta/v1alpha1"
+	"istio.io/pkg/log"
 
 	versionedclient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -143,6 +144,7 @@ func create(ic versionedclient.Interface, sc serviceapisclient.Interface, cfg co
 }
 
 func update(ic versionedclient.Interface, sc serviceapisclient.Interface, cfg config.Config, objMeta metav1.ObjectMeta) (metav1.Object, error) {
+	log.Infof("update====exec")
 	switch cfg.GroupVersionKind {
 	case collections.IstioNetworkingV1Alpha3Destinationrules.Resource().GroupVersionKind():
 		return ic.NetworkingV1alpha3().DestinationRules(cfg.Namespace).Update(context.TODO(), &clientnetworkingv1alpha3.DestinationRule{

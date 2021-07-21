@@ -1241,6 +1241,7 @@ func (a *ADSC) handleMCP(gvk []string, resources []*any.Any) {
 			continue
 		}
 		val, err := mcpToPilot(m)
+		log.Infof("val====%+v", val)
 		if err != nil {
 			adscLog.Warn("Invalid data ", err, " ", string(rsc.Value))
 			continue
@@ -1258,6 +1259,7 @@ func (a *ADSC) handleMCP(gvk []string, resources []*any.Any) {
 		} else {
 			_, err = a.Store.Update(*val)
 			if err != nil {
+				//todo ===================
 				adscLog.Warnf("Error updating an existing resource in the store %v", err)
 				continue
 			}

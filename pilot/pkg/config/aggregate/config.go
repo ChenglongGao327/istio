@@ -17,6 +17,7 @@ package aggregate
 
 import (
 	"errors"
+	"istio.io/pkg/log"
 
 	"github.com/hashicorp/go-multierror"
 	"k8s.io/client-go/tools/cache"
@@ -150,6 +151,7 @@ func (cr *store) Update(c config.Config) (string, error) {
 	if cr.writer == nil {
 		return "", errorUnsupported
 	}
+	log.Infof("==update1")
 	return cr.writer.Update(c)
 }
 

@@ -276,11 +276,13 @@ func (cl *Client) Create(cfg config.Config) (string, error) {
 
 // Update implements store interface
 func (cl *Client) Update(cfg config.Config) (string, error) {
+	log.Infof("update===2")
 	if cfg.Spec == nil {
 		return "", fmt.Errorf("nil spec for %v/%v", cfg.Name, cfg.Namespace)
 	}
 
 	meta, err := update(cl.istioClient, cl.gatewayAPIClient, cfg, getObjectMetadata(cfg))
+	log.Infof("==err %s",err)
 	if err != nil {
 		return "", err
 	}
