@@ -600,9 +600,9 @@ func (s *DiscoveryServer) initializeProxy(node *core.Node, con *Connection) erro
 
 	proxy.WatchedResources = map[string]*model.WatchedResource{}
 	// Based on node metadata and version, we can associate a different generator.
-	log.Infof("====init %s",proxy.Metadata.Generator)
+	log.Infof("====init %s", proxy.Metadata.Generator)
 	if proxy.Metadata.Generator != "" {
-		log.Infof("====init %+v",s.Generators)
+		log.Infof("====init %+v", s.Generators)
 		proxy.XdsResourceGenerator = s.Generators[proxy.Metadata.Generator]
 	}
 
