@@ -105,6 +105,11 @@ func (g *APIGenerator) Generate(proxy *model.Proxy, push *model.PushContext, w *
 	// even if k8s is disconnected, we still cache all previous results.
 	// This needs further consideration - I don't think XDS or MCP transports
 	// have a clear recommendation.
+	log.Infof("======%s", rgvk)
+	log.Infof("======%s", g.store)
+	if g.store == nil {
+		log.Infof("====g.store is nil")
+	}
 	cfg, err := g.store.List(rgvk, "")
 	if err != nil {
 		log.Warnf("ADS: Error reading resource %s %v", w.TypeUrl, err)
