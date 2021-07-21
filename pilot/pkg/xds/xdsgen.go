@@ -62,10 +62,12 @@ func init() {
 
 func (s *DiscoveryServer) findGenerator(typeURL string, con *Connection) model.XdsResourceGenerator {
 	if g, f := s.Generators[con.proxy.Metadata.Generator+"/"+typeURL]; f {
+		log.Info("use s.gen[]")
 		return g
 	}
 
 	if g, f := s.Generators[typeURL]; f {
+		log.Infof("use s.gen")
 		return g
 	}
 
@@ -74,12 +76,16 @@ func (s *DiscoveryServer) findGenerator(typeURL string, con *Connection) model.X
 	g := con.proxy.XdsResourceGenerator
 	if g == nil {
 		if strings.HasPrefix(typeURL, "istio.io/debug/") {
+			log.Infof("===use api gen 1 %s", typeURL)
 			g = s.Generators["event"]
 		} else {
 			// TODO move this to just directly using the resource TypeUrl
+			log.Infof("===use api gen2 %s", typeURL)
 			g = s.Generators["api"] // default to "MCP" generators - any type supported by store
 		}
 	}
+	log.Infof("===use api gen3%s", typeURL)
+	log.Infof("===use api gen3 == %+v", g)
 	return g
 }
 
@@ -91,8 +97,8 @@ func (s *DiscoveryServer) pushXds(con *Connection, push *model.PushContext,
 	if w == nil {
 		return nil
 	}
-	log.Infof("==%v", con)
-	log.Infof("==%s", w.TypeUrl)
+	log.Infof("com==%+v", con)
+	log.Infof("url==%s", w.TypeUrl)
 	gen := s.findGenerator(w.TypeUrl, con)
 	if gen == nil {
 		return nil

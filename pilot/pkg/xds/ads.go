@@ -193,6 +193,7 @@ func (s *DiscoveryServer) receive(con *Connection) {
 // handles 'push' requests and close - the code will eventually call the 'push' code, and it needs more mutex
 // protection. Original code avoided the mutexes by doing both 'push' and 'process requests' in same thread.
 func (s *DiscoveryServer) processRequest(req *discovery.DiscoveryRequest, con *Connection) error {
+	log.Infof("==req=%+v", req)
 	if !s.shouldProcessRequest(con.proxy, req) {
 		return nil
 	}
@@ -599,7 +600,9 @@ func (s *DiscoveryServer) initializeProxy(node *core.Node, con *Connection) erro
 
 	proxy.WatchedResources = map[string]*model.WatchedResource{}
 	// Based on node metadata and version, we can associate a different generator.
+	log.Infof("====init %s",proxy.Metadata.Generator)
 	if proxy.Metadata.Generator != "" {
+		log.Infof("====init %+v",s.Generators)
 		proxy.XdsResourceGenerator = s.Generators[proxy.Metadata.Generator]
 	}
 
