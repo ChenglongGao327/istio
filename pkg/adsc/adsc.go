@@ -1240,36 +1240,34 @@ func (a *ADSC) handleMCP(gvk []string, resources []*any.Any) {
 			adscLog.Warnf("Error unmarshalling received MCP config %v", err)
 			continue
 		}
-		val, err := mcpToPilot(m)
+		newCfg, err := mcpToPilot(m)
 		if err != nil {
 			adscLog.Warn("Invalid data ", err, " ", string(rsc.Value))
 			continue
 		}
-		received[val.Namespace+"/"+val.Name] = val
+		received[newCfg.Namespace+"/"+newCfg.Name] = newCfg
 
-		val.GroupVersionKind = groupVersionKind
-		cfg := a.Store.Get(val.GroupVersionKind, val.Name, val.Namespace)
-		if cfg == nil {
-			_, err = a.Store.Create(*val)
-			if err != nil {
+		newCfg.GroupVersionKind = groupVersionKind
+		oldCfg := a.Store.Get(newCfg.GroupVersionKind, newCfg.Name, newCfg.Namespace)
+		if oldCfg == nil {
+			if _, err = a.Store.Create(*newCfg); err != nil {
 				adscLog.Warnf("Error adding a new resource to the store %v", err)
 				continue
 			}
-		} else {
-			_, err = a.Store.Update(*val)
-			if err != nil {
+		} else if newCfg.ResourceVersion == "" || oldCfg.ResourceVersion != newCfg.ResourceVersion {
+			if _, err = a.Store.Update(*newCfg); err != nil {
 				adscLog.Warnf("Error updating an existing resource in the store %v", err)
 				continue
 			}
 		}
 		if a.LocalCacheDir != "" {
-			strResponse, err := json.MarshalIndent(val, "  ", "  ")
+			strResponse, err := json.MarshalIndent(newCfg, "  ", "  ")
 			if err != nil {
 				adscLog.Warnf("Error marshaling received MCP config %v", err)
 				continue
 			}
 			err = ioutil.WriteFile(a.LocalCacheDir+"_res."+
-				val.GroupVersionKind.Kind+"."+val.Namespace+"."+val.Name+".json", strResponse, 0o644)
+				newCfg.GroupVersionKind.Kind+"."+newCfg.Namespace+"."+newCfg.Name+".json", strResponse, 0o644)
 			if err != nil {
 				adscLog.Warnf("Error writing received MCP config to local file %v", err)
 			}
