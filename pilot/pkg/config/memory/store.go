@@ -18,6 +18,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"istio.io/pkg/log"
 	"sync"
 	"time"
 
@@ -161,11 +162,14 @@ func (cr *store) Create(cfg config.Config) (string, error) {
 	_, exists = ns.Load(cfg.Name)
 
 	if !exists {
+		if cfg.ResourceVersion == "" {
+			cfg.ResourceVersion = time.Now().String()
+		}
 		// Set the creation timestamp, if not provided.
 		if cfg.CreationTimestamp.IsZero() {
 			cfg.CreationTimestamp = time.Now()
 		}
-
+		log.Info("===update : %s=%s", cfg.Name, cfg.ResourceVersion)
 		ns.Store(cfg.Name, cfg)
 		return cfg.ResourceVersion, nil
 	}
@@ -195,7 +199,11 @@ func (cr *store) Update(cfg config.Config) (string, error) {
 	if !exists {
 		return "", errNotFound
 	}
-	if cfg.ResourceVersion == "" || oldCfg.(config.Config).ResourceVersion != cfg.ResourceVersion {
+	log.Info("===update : %s=%s", cfg.Name, cfg.ResourceVersion)
+	if cfg.ResourceVersion == "" {
+		cfg.ResourceVersion = time.Now().String()
+	}
+	if cfg.ResourceVersion != oldCfg.(config.Config).ResourceVersion {
 		ns.Store(cfg.Name, cfg)
 	}
 	return cfg.ResourceVersion, nil
@@ -231,6 +239,9 @@ func (cr *store) Patch(orig config.Config, patchFn config.PatchFunc) (string, er
 		return "", errNotFound
 	}
 
+	if cfg.ResourceVersion == "" {
+		cfg.ResourceVersion = time.Now().String()
+	}
 	ns.Store(cfg.Name, cfg)
 
 	return cfg.ResourceVersion, nil
