@@ -1249,6 +1249,8 @@ func (a *ADSC) handleMCP(gvk []string, resources []*any.Any) {
 			adscLog.Warn("Invalid data ", err, " ", string(rsc.Value))
 			continue
 		}
+		log.Info("==new store list =", newCfg.Name, "/", newCfg.ResourceVersion)
+
 		received[newCfg.Namespace+"/"+newCfg.Name] = newCfg
 
 		newCfg.GroupVersionKind = groupVersionKind
@@ -1260,6 +1262,7 @@ func (a *ADSC) handleMCP(gvk []string, resources []*any.Any) {
 				continue
 			}
 		} else if oldCfg.ResourceVersion != newCfg.ResourceVersion || newCfg.ResourceVersion == "" {
+			log.Info("==old store  =", oldCfg.Name, "/", oldCfg.ResourceVersion)
 			// update the store only when resource version differs or unset.
 			newCfg.Annotations[mem.ResourceVersion] = newCfg.ResourceVersion
 			newCfg.ResourceVersion = oldCfg.ResourceVersion

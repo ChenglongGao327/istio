@@ -107,6 +107,8 @@ type Service struct {
 	// MeshExternal (if true) indicates that the service is external to the mesh.
 	// These services are defined using Istio's ServiceEntry spec.
 	MeshExternal bool
+
+	Version string
 }
 
 // Resolution indicates how the service instances need to be resolved before routing

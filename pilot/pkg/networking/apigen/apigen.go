@@ -115,6 +115,7 @@ func (g *APIGenerator) Generate(proxy *model.Proxy, push *model.PushContext, w *
 		// This also helps migrating MCP users.
 
 		b, err := configToResource(&c)
+		log.Info("==cfe store list =", b.Metadata.Name, "/", b.Metadata.Version)
 		if err != nil {
 			log.Warn("Resource error ", err, " ", c.Namespace, "/", c.Name)
 			continue
@@ -147,6 +148,7 @@ func (g *APIGenerator) Generate(proxy *model.Proxy, push *model.PushContext, w *
 			}
 			c := serviceentry.ServiceToServiceEntry(s)
 			b, err := configToResource(c)
+			log.Info("==cfe se =", b.Metadata.Name, "/", b.Metadata.Version)
 			if err != nil {
 				log.Warn("Resource error ", err, " ", c.Namespace, "/", c.Name)
 				continue
