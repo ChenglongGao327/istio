@@ -518,6 +518,9 @@ var (
 		false,
 		"If enabled, if user introduces new intermediate plug-in CA, user need not to restart isitod to pick up certs."+
 			"Istiod picks newly added intermediate plug-in CA certs and updates it. Plug-in new Root-CA not supported.").Get()
+
+	EnableInternalTrafficPolicy = env.RegisterBoolVar("PILOT_ENABLE_INTERNAL_TRAFFIC_POLICY", true,
+		"If true, pilot will support kubernetes service internal traffic policy （k8s version >= v1.21）").Get()
 )
 
 // UnsafeFeaturesEnabled returns true if any unsafe features are enabled.

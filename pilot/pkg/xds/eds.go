@@ -397,12 +397,17 @@ func (eds *EdsGenerator) Generate(proxy *model.Proxy, push *model.PushContext, w
 			}
 		}
 		builder := NewEndpointBuilder(clusterName, proxy, push)
+		log.Infof("===cluster - pre==%s", clusterName)
 		if marshalledEndpoint, token, f := eds.Server.Cache.Get(builder); f && !features.EnableUnsafeAssertions {
 			// We skip cache if assertions are enabled, so that the cache will assert our eviction logic is correct
 			resources = append(resources, marshalledEndpoint)
 			cached++
 		} else {
 			l := eds.Server.generateEndpoints(builder)
+
+			log.Infof("===cluster next ==%s", clusterName)
+			log.Infof("===proxy name==%s", proxy.IPAddresses[0])
+			log.Infof("===endpoint==%+v", l.Endpoints)
 			if l == nil {
 				continue
 			}
