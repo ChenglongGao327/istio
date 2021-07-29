@@ -524,6 +524,9 @@ var (
 		true,
 		"If false, TCP probes will not be rewritten and therefor always succeed when a sidecar is used.",
 	).Get()
+
+	EnableInternalTrafficPolicy = env.RegisterBoolVar("PILOT_ENABLE_INTERNAL_TRAFFIC_POLICY", true,
+		"If true, pilot will support kubernetes service internal traffic policy (k8s version >= v1.21)").Get()
 )
 
 // UnsafeFeaturesEnabled returns true if any unsafe features are enabled.

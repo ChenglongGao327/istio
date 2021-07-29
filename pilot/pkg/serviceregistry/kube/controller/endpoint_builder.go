@@ -46,14 +46,17 @@ type EndpointBuilder struct {
 	hostname string
 	// If specified, the fully qualified Pod hostname will be "<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>".
 	subDomain string
+	// The name of the node where the endpoint(pod) is located
+	NodeName string
 }
 
 func NewEndpointBuilder(c controllerInterface, pod *v1.Pod) *EndpointBuilder {
-	locality, sa, namespace, hostname, subdomain := "", "", "", "", ""
+	locality, sa, namespace, hostname, subdomain, nodeName := "", "", "", "", "", ""
 	var podLabels labels.Instance
 	if pod != nil {
 		locality = c.getPodLocality(pod)
 		sa = kube.SecureNamingSAN(pod)
+		nodeName = string(c.Cluster()) + "-" + pod.Spec.NodeName
 		podLabels = pod.Labels
 		namespace = pod.Namespace
 		subdomain = pod.Spec.Subdomain
@@ -79,6 +82,7 @@ func NewEndpointBuilder(c controllerInterface, pod *v1.Pod) *EndpointBuilder {
 		namespace:    namespace,
 		hostname:     hostname,
 		subDomain:    subdomain,
+		NodeName:     nodeName,
 	}
 }
 
@@ -145,6 +149,7 @@ func (b *EndpointBuilder) buildIstioEndpoint(
 		HostName:              b.hostname,
 		SubDomain:             b.subDomain,
 		DiscoverabilityPolicy: discoverabilityPolicy,
+		NodeName:              b.NodeName,
 	}
 }
 

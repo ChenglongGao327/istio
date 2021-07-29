@@ -107,7 +107,25 @@ type Service struct {
 	// MeshExternal (if true) indicates that the service is external to the mesh.
 	// These services are defined using Istio's ServiceEntry spec.
 	MeshExternal bool
+
+	// InternalTrafficPolicy specifies if the cluster internal traffic
+	// should be routed to all endpoints or node-local endpoints only.
+	// "Cluster" routes internal traffic to a Service to all endpoints.
+	// "Local" routes traffic to node-local endpoints only, traffic is
+	// dropped if no node-local endpoints are ready.
+	InternalTrafficPolicy *ServiceInternalTrafficPolicyType
 }
+
+// ServiceInternalTrafficPolicyType describes the type of traffic routing for internal traffic
+type ServiceInternalTrafficPolicyType string
+
+const (
+	// ServiceInternalTrafficPolicyCluster routes traffic to all endpoints
+	ServiceInternalTrafficPolicyCluster ServiceInternalTrafficPolicyType = "Cluster"
+
+	// ServiceInternalTrafficPolicyLocal only routes to node-local endpoints, otherwise drops the traffic
+	ServiceInternalTrafficPolicyLocal ServiceInternalTrafficPolicyType = "Local"
+)
 
 // Resolution indicates how the service instances need to be resolved before routing
 // traffic.
@@ -418,6 +436,9 @@ type IstioEndpoint struct {
 
 	// Determines the discoverability of this endpoint throughout the mesh.
 	DiscoverabilityPolicy EndpointDiscoverabilityPolicy `json:"-"`
+
+	// The name of the node where the endpoint(pod) is located
+	NodeName string
 }
 
 // GetLoadBalancingWeight returns the weight for this endpoint, normalized to always be > 0.
