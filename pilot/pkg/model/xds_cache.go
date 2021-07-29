@@ -219,6 +219,7 @@ func (l *lruCache) Add(entry XdsCacheEntry, pushReq *PushRequest, value *discove
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	k := entry.Key()
+	log.Infof("===key=%s-===val==%s", k, value)
 	cur, f := l.store.Get(k)
 	if f {
 		// This is the stale resource
@@ -235,7 +236,6 @@ func (l *lruCache) Add(entry XdsCacheEntry, pushReq *PushRequest, value *discove
 	if token < l.token {
 		return
 	}
-
 	toWrite := cacheValue{value: value, token: token}
 	l.store.Add(k, toWrite)
 	l.token = token

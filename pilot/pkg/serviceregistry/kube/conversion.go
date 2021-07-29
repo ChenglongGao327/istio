@@ -15,6 +15,8 @@
 package kube
 
 import (
+	"fmt"
+	"reflect"
 	"strings"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -91,14 +93,15 @@ func ConvertService(svc coreV1.Service, domainSuffix string, clusterID cluster.I
 	}
 
 	istioService := &model.Service{
-		Hostname:        ServiceHostname(svc.Name, svc.Namespace, domainSuffix),
-		Ports:           ports,
-		Address:         addr,
-		ServiceAccounts: serviceaccounts,
-		MeshExternal:    meshExternal,
-		Resolution:      resolution,
-		CreationTime:    svc.CreationTimestamp.Time,
-		ClusterVIPs:     map[cluster.ID]string{clusterID: addr},
+		Hostname:              ServiceHostname(svc.Name, svc.Namespace, domainSuffix),
+		Ports:                 ports,
+		Address:               addr,
+		ServiceAccounts:       serviceaccounts,
+		MeshExternal:          meshExternal,
+		Resolution:            resolution,
+		CreationTime:          svc.CreationTimestamp.Time,
+		ClusterVIPs:           map[cluster.ID]string{clusterID: addr},
+		InternalTrafficPolicy: valueToStringGenerated(svc.Spec.InternalTrafficPolicy) == "Local",
 		Attributes: model.ServiceAttributes{
 			ServiceRegistry: provider.Kubernetes,
 			Name:            svc.Name,
@@ -151,6 +154,15 @@ func ConvertService(svc coreV1.Service, domainSuffix string, clusterID cluster.I
 	}
 
 	return istioService
+}
+
+func valueToStringGenerated(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("%v", pv)
 }
 
 func ExternalNameServiceInstances(k8sSvc *coreV1.Service, svc *model.Service) []*model.ServiceInstance {

@@ -384,7 +384,6 @@ func (eds *EdsGenerator) Generate(proxy *model.Proxy, push *model.PushContext, w
 	}
 	resources := make(model.Resources, 0)
 	empty := 0
-
 	cached := 0
 	regenerated := 0
 	for _, clusterName := range w.ResourceNames {
