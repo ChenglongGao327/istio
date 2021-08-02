@@ -22,7 +22,7 @@ import (
 
 func adminCmd() *cobra.Command {
 	adminCmd := &cobra.Command{
-		Use:   "admin",
+		Use:   "admin(test)",
 		Short: "Manage control plane (istiod) configuration",
 		Long:  "A group of commands used to manage istiod configuration",
 		Example: `  # Retrieve information about istiod configuration.

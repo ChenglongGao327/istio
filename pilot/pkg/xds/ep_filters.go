@@ -209,7 +209,7 @@ func (b *EndpointBuilder) scaleEndpointLBWeight(ep *endpoint.LbEndpoint, scaleFa
 func (b *EndpointBuilder) EndpointsWithMTLSFilter(endpoints []*LocLbEndpointsAndOptions) []*LocLbEndpointsAndOptions {
 	// A new array of endpoints to be returned that will have both local and
 	// remote gateways (if any)
-	filtered := make([]*LocLbEndpointsAndOptions, 0)
+	filtered := make([]*LocLbEndpointsAndOptions, 0, len(endpoints))
 
 	// Go through all cluster endpoints and add those with mTLS enabled
 	for _, ep := range endpoints {

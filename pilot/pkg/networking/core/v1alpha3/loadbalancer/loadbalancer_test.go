@@ -60,6 +60,14 @@ func TestApplyLocalitySetting(t *testing.T) {
 							"region1/zone1/subzone3": 5,
 						},
 					},
+					{
+						From: "region1/zone1/subzone1",
+						To: map[string]uint32{
+							"region1/zone1/subzone1": 80,
+							"region1/zone1/subzone2": 10,
+							"region1/zone1/subzone3": 10,
+						},
+					},
 				},
 				expected: []int{40, 40, 15, 5, 0, 0, 0},
 			},
