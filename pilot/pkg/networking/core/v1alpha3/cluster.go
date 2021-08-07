@@ -517,7 +517,6 @@ func convertResolution(proxy *model.Proxy, service *model.Service) cluster.Clust
 			if service.Attributes.ServiceRegistry == provider.Kubernetes && features.EnableEDSForHeadless {
 				return cluster.Cluster_EDS
 			}
-
 			return cluster.Cluster_ORIGINAL_DST
 		}
 		return cluster.Cluster_EDS
