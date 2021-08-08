@@ -271,8 +271,6 @@ func resolveGatewayName(gwname string, meta config.Meta) string {
 // MostSpecificHostMatch compares the elements of the stack to the needle, and returns the longest stack element
 // matching the needle, or false if no element in the stack matches the needle.
 func MostSpecificHostMatch(needle host.Name, m map[host.Name]struct{}, stack []host.Name) (host.Name, bool) {
-	matches := []host.Name{}
-
 	// exact match first
 	if m != nil {
 		if _, ok := m[needle]; ok {
@@ -286,6 +284,7 @@ func MostSpecificHostMatch(needle host.Name, m map[host.Name]struct{}, stack []h
 		}
 	}
 
+	matches := []host.Name{}
 	if needle.IsWildCarded() {
 		// slice has better loop performance than map, so use stack to range
 		// and stack is ordered before
@@ -302,7 +301,7 @@ func MostSpecificHostMatch(needle host.Name, m map[host.Name]struct{}, stack []h
 		}
 	} else {
 		for _, h := range stack {
-			// only n is wildcard
+			// only h is wildcard
 			if h.IsWildCarded() {
 				if strings.HasSuffix(string(needle), string(h[1:])) {
 					matches = append(matches, h)

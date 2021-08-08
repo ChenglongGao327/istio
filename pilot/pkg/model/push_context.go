@@ -662,7 +662,6 @@ func (ps *PushContext) Services(proxy *Proxy) []*Service {
 	}
 
 	out := make([]*Service, 0)
-
 	// First add private services and explicitly exportedTo services
 	if proxy == nil {
 		for _, privateServices := range ps.ServiceIndex.privateByNamespace {

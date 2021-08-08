@@ -499,14 +499,9 @@ func (sc *SidecarScope) GetEgressListenerForRDS(port int, bind string) *IstioEgr
 
 // HasIngressListener returns if the sidecar scope has ingress listener set
 func (sc *SidecarScope) HasIngressListener() bool {
-	if sc == nil {
+	if sc == nil || sc.Sidecar == nil || len(sc.Sidecar.Ingress) == 0 {
 		return false
 	}
-
-	if sc.Sidecar == nil || len(sc.Sidecar.Ingress) == 0 {
-		return false
-	}
-
 	return true
 }
 

@@ -1066,7 +1066,7 @@ func (mc *MutableCluster) build() *cluster.Cluster {
 	if mc == nil {
 		return nil
 	}
-	// Marshall Http Protocol options if they exist.
+	// Marshal Http Protocol options if they exist.
 	if mc.httpProtocolOptions != nil {
 		// UpstreamProtocolOptions is required field in Envoy. If we have not set this option earlier
 		// we need to set it to default http protocol options.

@@ -380,11 +380,11 @@ func buildInboundLocalityLbEndpoints(bind string, port uint32) []*endpoint.Local
 func (configgen *ConfigGeneratorImpl) buildInboundClusters(cb *ClusterBuilder, instances []*model.ServiceInstance, cp clusterPatcher) []*cluster.Cluster {
 	clusters := make([]*cluster.Cluster, 0)
 
-	// The inbound clusters for a node depends on whether the node has a SidecarScope with inbound listeners
-	// or not. If the node has a sidecarscope with ingress listeners, we only return clusters corresponding
-	// to those listeners i.e. clusters made out of the defaultEndpoint field.
-	// If the node has no sidecarScope and has interception mode set to NONE, then we should skip the inbound
-	// clusters, because there would be no corresponding inbound listeners
+	// The inbound clusters for a node depends on whether the node has a SidecarScope with inbound listeners or not.
+	// If the node has a sidecarscope with ingress listeners, we only return clusters corresponding to those listeners
+	// i.e. clusters made out of the defaultEndpoint field.
+	// If the node has no sidecarScope and has interception mode set to NONE, then we should skip the inbound clusters,
+	// because there would be no corresponding inbound listeners
 	sidecarScope := cb.proxy.SidecarScope
 	noneMode := cb.proxy.GetInterceptionMode() == model.InterceptionNone
 
@@ -401,10 +401,10 @@ func (configgen *ConfigGeneratorImpl) buildInboundClusters(cb *ClusterBuilder, i
 
 		clustersToBuild := make(map[int][]*model.ServiceInstance)
 		for _, instance := range instances {
-			// For service instances with the same port,
-			// we still need to capture all the instances on this port, as its required to populate telemetry metadata
+			// For service instances with the same port, we still need to capture all the instances on this port,
+			// as its required to populate telemetry metadata.
 			// The first instance will be used as the "primary" instance; this means if we have an conflicts between
-			// Services the first one wins
+			// Services the first one wins.
 			ep := int(instance.Endpoint.EndpointPort)
 			clustersToBuild[ep] = append(clustersToBuild[ep], instance)
 		}
@@ -559,7 +559,7 @@ func buildAutoMtlsSettings(
 		}
 		// Update TLS settings for ISTIO_MUTUAL. Use client provided SNI if set. Otherwise,
 		// overwrite with the auto generated SNI. User specified SNIs in the istio mtls settings
-		// are useful when routing via gateways. Use Service Acccounts if Subject Alt names
+		// are useful when routing via gateways. Use Service Accounts if Subject Alt names
 		// are not specified in TLS settings.
 		sniToUse := tls.Sni
 		if len(sniToUse) == 0 {

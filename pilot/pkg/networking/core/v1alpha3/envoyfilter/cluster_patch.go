@@ -106,7 +106,6 @@ func mergeTransportSocketCluster(c *cluster.Cluster, cp *model.EnvoyFilterConfig
 		srcPatch := cpValueCast.GetTransportSocket().GetTypedConfig()
 
 		if dstCluster != nil && srcPatch != nil {
-
 			retVal, errMerge := util.MergeAnyWithAny(dstCluster, srcPatch)
 			if errMerge != nil {
 				return false, fmt.Errorf("function MergeAnyWithAny failed for ApplyClusterMerge: %v", errMerge)
