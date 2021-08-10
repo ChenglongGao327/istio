@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"istio.io/istio/pilot/pkg/model"
+	"istio.io/istio/pilot/pkg/networking/core/v1alpha3/route"
 	"istio.io/istio/pilot/pkg/serviceregistry/provider"
 	"istio.io/istio/pkg/config/host"
 	"istio.io/istio/pkg/config/labels"
@@ -54,7 +55,7 @@ func (c *ServiceController) HasSynced() bool { return true }
 
 // ServiceDiscovery is a mock discovery interface
 type ServiceDiscovery struct {
-	services        map[host.Name]*model.Service
+	services        map[host.Name][]*model.Service
 	networkGateways []*model.NetworkGateway
 	// EndpointShards table. Key is the fqdn of the service, ':', port
 	instancesByPortNum  map[string][]*model.ServiceInstance
@@ -85,9 +86,9 @@ var _ model.ServiceDiscovery = &ServiceDiscovery{}
 
 // NewServiceDiscovery builds an in-memory ServiceDiscovery
 func NewServiceDiscovery(services []*model.Service) *ServiceDiscovery {
-	svcs := map[host.Name]*model.Service{}
+	svcs := map[host.Name][]*model.Service{}
 	for _, svc := range services {
-		svcs[svc.Hostname] = svc
+		svcs[svc.Hostname] = append(svcs[svc.Hostname], svc)
 	}
 	return &ServiceDiscovery{
 		services:            svcs,
@@ -123,7 +124,7 @@ func (sd *ServiceDiscovery) AddHTTPService(name, vip string, port int) {
 func (sd *ServiceDiscovery) AddService(name host.Name, svc *model.Service) {
 	sd.mutex.Lock()
 	svc.Attributes.ServiceRegistry = provider.Mock
-	sd.services[name] = svc
+	sd.services[name] = append(sd.services[name], svc)
 	sd.mutex.Unlock()
 	// TODO: notify listeners
 }
@@ -141,20 +142,22 @@ func (sd *ServiceDiscovery) AddInstance(service host.Name, instance *model.Servi
 	// WIP: add enough code to allow tests and load tests to work
 	sd.mutex.Lock()
 	defer sd.mutex.Unlock()
-	svc := sd.services[service]
-	if svc == nil {
+	svcs := sd.services[service]
+	if svcs == nil {
 		return
 	}
-	instance.Service = svc
-	sd.ip2instance[instance.Endpoint.Address] = append(sd.ip2instance[instance.Endpoint.Address], instance)
+	for _, svc := range svcs {
+		instance.Service = svc
+		sd.ip2instance[instance.Endpoint.Address] = append(sd.ip2instance[instance.Endpoint.Address], instance)
 
-	key := fmt.Sprintf("%s:%d", service, instance.ServicePort.Port)
-	instanceList := sd.instancesByPortNum[key]
-	sd.instancesByPortNum[key] = append(instanceList, instance)
+		key := fmt.Sprintf("%s:%d", service, instance.ServicePort.Port)
+		instanceList := sd.instancesByPortNum[key]
+		sd.instancesByPortNum[key] = append(instanceList, instance)
 
-	key = fmt.Sprintf("%s:%s", service, instance.ServicePort.Name)
-	instanceList = sd.instancesByPortName[key]
-	sd.instancesByPortName[key] = append(instanceList, instance)
+		key = fmt.Sprintf("%s:%s", service, instance.ServicePort.Name)
+		instanceList = sd.instancesByPortName[key]
+		sd.instancesByPortName[key] = append(instanceList, instance)
+	}
 }
 
 // AddEndpoint adds an endpoint to a service.
@@ -180,8 +183,8 @@ func (sd *ServiceDiscovery) SetEndpoints(service string, namespace string, endpo
 	sh := host.Name(service)
 
 	sd.mutex.Lock()
-	svc := sd.services[sh]
-	if svc == nil {
+	svcs, _ := sd.services[sh]
+	if svcs == nil {
 		return
 	}
 
@@ -201,32 +204,33 @@ func (sd *ServiceDiscovery) SetEndpoints(service string, namespace string, endpo
 			delete(sd.instancesByPortName, k)
 		}
 	}
+	for _, svc := range svcs {
+		for _, e := range endpoints {
+			// servicePortName string, servicePort int, address string, port int
+			p, _ := svc.Ports.Get(e.ServicePortName)
 
-	for _, e := range endpoints {
-		// servicePortName string, servicePort int, address string, port int
-		p, _ := svc.Ports.Get(e.ServicePortName)
+			instance := &model.ServiceInstance{
+				Service: svc,
+				ServicePort: &model.Port{
+					Name:     e.ServicePortName,
+					Port:     p.Port,
+					Protocol: protocol.HTTP,
+				},
+				Endpoint: e,
+			}
+			sd.ip2instance[instance.Endpoint.Address] = []*model.ServiceInstance{instance}
 
-		instance := &model.ServiceInstance{
-			Service: svc,
-			ServicePort: &model.Port{
-				Name:     e.ServicePortName,
-				Port:     p.Port,
-				Protocol: protocol.HTTP,
-			},
-			Endpoint: e,
+			key := fmt.Sprintf("%s:%d", service, instance.ServicePort.Port)
+
+			instanceList := sd.instancesByPortNum[key]
+			sd.instancesByPortNum[key] = append(instanceList, instance)
+
+			key = fmt.Sprintf("%s:%s", service, instance.ServicePort.Name)
+			instanceList = sd.instancesByPortName[key]
+			sd.instancesByPortName[key] = append(instanceList, instance)
 		}
-		sd.ip2instance[instance.Endpoint.Address] = []*model.ServiceInstance{instance}
-
-		key := fmt.Sprintf("%s:%d", service, instance.ServicePort.Port)
-
-		instanceList := sd.instancesByPortNum[key]
-		sd.instancesByPortNum[key] = append(instanceList, instance)
-
-		key = fmt.Sprintf("%s:%s", service, instance.ServicePort.Name)
-		instanceList = sd.instancesByPortName[key]
-		sd.instancesByPortName[key] = append(instanceList, instance)
-
 	}
+
 	sd.mutex.Unlock()
 
 	sd.EDSUpdater.EDSUpdate(sd.ClusterID, service, namespace, endpoints)
@@ -240,9 +244,9 @@ func (sd *ServiceDiscovery) Services() ([]*model.Service, error) {
 	if sd.ServicesError != nil {
 		return nil, sd.ServicesError
 	}
-	out := make([]*model.Service, 0, len(sd.services))
+	out := make([]*model.Service, 0)
 	for _, service := range sd.services {
-		out = append(out, service)
+		out = append(out, service...)
 	}
 	return out, sd.ServicesError
 }
@@ -255,7 +259,7 @@ func (sd *ServiceDiscovery) GetService(hostname host.Name) (*model.Service, erro
 	if sd.GetServiceError != nil {
 		return nil, sd.GetServiceError
 	}
-	val := sd.services[hostname]
+	val, _ := route.GetFirstServiceByHostName(sd.services, hostname)
 	if val == nil {
 		return nil, errors.New("missing service")
 	}

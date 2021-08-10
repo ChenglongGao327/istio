@@ -15,6 +15,7 @@
 package route_test
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -42,9 +43,51 @@ import (
 	"istio.io/istio/pkg/util/gogo"
 )
 
+func TestBuild1HTTPRoutes(t *testing.T) {
+	serviceRegistry := make(map[host.Name][]*model.Service)
+	//services := []*model.Service{
+	//	//{
+	//	//	Hostname:    "*.example.org",
+	//	//	Address:     "1.1.1.1",
+	//	//	ClusterVIPs: make(map[cluster.ID]string),
+	//	//	Ports: model.PortList{
+	//	//		&model.Port{
+	//	//			Name:     "default",
+	//	//			Port:     8080,
+	//	//			Protocol: protocol.HTTP,
+	//	//		},
+	//	//	},
+	//	//},
+	//	//{
+	//	//	Hostname:    "*.example.org",
+	//	//	Address:     "2.2.2.2",
+	//	//	ClusterVIPs: make(map[cluster.ID]string),
+	//	//	Ports: model.PortList{
+	//	//		&model.Port{
+	//	//			Name:     "default",
+	//	//			Port:     8080,
+	//	//			Protocol: protocol.HTTP,
+	//	//		},
+	//	//	},
+	//	//},
+	//}
+	serviceRegistry["aaaa"] = nil
+	for _, val := range serviceRegistry {
+		fmt.Print(val)
+		if val == nil {
+			fmt.Println("1")
+		}
+		if len(val) < 1 {
+			fmt.Println("2")
+		}
+
+	}
+	route.GetFirstServiceByHostName(serviceRegistry, "aaa")
+}
 func TestBuildHTTPRoutes(t *testing.T) {
-	serviceRegistry := map[host.Name]*model.Service{
-		"*.example.org": {
+	serviceRegistry := make(map[host.Name][]*model.Service)
+	services := []*model.Service{
+		{
 			Hostname:    "*.example.org",
 			Address:     "1.1.1.1",
 			ClusterVIPs: make(map[cluster.ID]string),
@@ -56,7 +99,20 @@ func TestBuildHTTPRoutes(t *testing.T) {
 				},
 			},
 		},
+		{
+			Hostname:    "*.example.org",
+			Address:     "2.2.2.2",
+			ClusterVIPs: make(map[cluster.ID]string),
+			Ports: model.PortList{
+				&model.Port{
+					Name:     "default",
+					Port:     8080,
+					Protocol: protocol.HTTP,
+				},
+			},
+		},
 	}
+	serviceRegistry[services[0].Hostname] = services
 
 	node := &model.Proxy{
 		Type:        model.SidecarProxy,

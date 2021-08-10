@@ -411,6 +411,7 @@ func TestSidecarOutboundHTTPRouteConfig(t *testing.T) {
 	services := []*model.Service{
 		buildHTTPService("bookinfo.com", visibility.Public, wildcardIP, "default", 9999, 70),
 		buildHTTPService("private.com", visibility.Private, wildcardIP, "default", 9999, 80),
+		buildHTTPService("test.com", visibility.Public, "6.6.6.6", "not-default", 8080),
 		buildHTTPService("test.com", visibility.Public, "8.8.8.8", "not-default", 8080),
 		buildHTTPService("test-private.com", visibility.Private, "9.9.9.9", "not-default", 80, 70),
 		buildHTTPService("test-private-2.com", visibility.Private, "9.9.9.10", "not-default", 60),
@@ -863,7 +864,7 @@ func TestSidecarOutboundHTTPRouteConfig(t *testing.T) {
 			sidecarConfig:         sidecarConfig,
 			virtualServiceConfigs: nil,
 			expectedHosts: map[string]map[string]bool{
-				"test.com:8080": {"test.com": true, "test.com:8080": true, "8.8.8.8": true, "8.8.8.8:8080": true},
+				"test.com:8080": {"test.com": true, "test.com:8080": true, "8.8.8.8": true, "8.8.8.8:8080": true, "6.6.6.6": true, "6.6.6.6:8080": true},
 				"block_all": {
 					"*": true,
 				},
@@ -992,7 +993,7 @@ func TestSidecarOutboundHTTPRouteConfig(t *testing.T) {
 			virtualServiceConfigs: nil,
 			expectedHosts: map[string]map[string]bool{
 				"test.com:8080": {
-					"test.com:8080": true, "test.com": true, "8.8.8.8": true, "8.8.8.8:8080": true,
+					"test.com:8080": true, "test.com": true, "8.8.8.8": true, "8.8.8.8:8080": true, "6.6.6.6": true, "6.6.6.6:8080": true,
 				},
 				"block_all": {
 					"*": true,
@@ -1198,7 +1199,7 @@ func TestSidecarOutboundHTTPRouteConfig(t *testing.T) {
 					"test-private.com": true, "test-private.com:80": true, "9.9.9.9": true, "9.9.9.9:80": true,
 				},
 				"test.com:8080": {
-					"test.com:8080": true, "8.8.8.8:8080": true,
+					"test.com:8080": true, "8.8.8.8:8080": true, "6.6.6.6:8080": true,
 				},
 				"service-A.default.svc.cluster.local:7777": {
 					"service-A.default.svc.cluster.local:7777": true,
