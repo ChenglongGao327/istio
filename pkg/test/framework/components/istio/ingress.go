@@ -45,6 +45,9 @@ const (
 	proxyContainerName = "istio-proxy"
 	proxyAdminPort     = 15000
 	discoveryPort      = 15012
+	httpPort           = 80
+	httpsPort          = 443
+	tcpPort            = 31400
 )
 
 var (
@@ -144,17 +147,17 @@ func (c *ingressImpl) Cluster() cluster.Cluster {
 
 // HTTPAddress returns the externally reachable HTTP host and port (80) of the component.
 func (c *ingressImpl) HTTPAddress() (string, int) {
-	return c.AddressForPort(80)
+	return c.AddressForPort(httpPort)
 }
 
 // TCPAddress returns the externally reachable TCP host and port (31400) of the component.
 func (c *ingressImpl) TCPAddress() (string, int) {
-	return c.AddressForPort(31400)
+	return c.AddressForPort(tcpPort)
 }
 
 // HTTPSAddress returns the externally reachable TCP host and port (443) of the component.
 func (c *ingressImpl) HTTPSAddress() (string, int) {
-	return c.AddressForPort(443)
+	return c.AddressForPort(httpsPort)
 }
 
 // DiscoveryAddress returns the externally reachable discovery address (15012) of the component.

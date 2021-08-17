@@ -18,6 +18,7 @@ package pilot
 import (
 	"context"
 	"fmt"
+	"istio.io/istio/pkg/test/framework/components/istio"
 	"net"
 	"os"
 	"path/filepath"
@@ -165,14 +166,11 @@ spec:
 				}
 			})
 			t.NewSubTest("tcp").Run(func(t framework.TestContext) {
-				host, port := apps.Ingress.TCPAddress()
 				_ = apps.Ingress.CallWithRetryOrFail(t, echo.CallOptions{
 					Port: &echo.Port{
-						Protocol:    protocol.HTTP,
-						ServicePort: port,
+						Protocol: protocol.TCP,
 					},
-					Address: host,
-					Path:    "/",
+					Path: "/",
 					Headers: map[string][]string{
 						"Host": {"my.domain.example"},
 					},
