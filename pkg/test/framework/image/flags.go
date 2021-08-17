@@ -40,7 +40,7 @@ func SettingsFromCommandLine() (*Settings, error) {
 
 	if s.PullPolicy == "" {
 		// Default to pull-always
-		s.PullPolicy = "Always"
+		s.PullPolicy = "IfNotPresent"
 	}
 
 	if s.Hub == "" || s.Tag == "" {

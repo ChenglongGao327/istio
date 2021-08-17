@@ -897,14 +897,12 @@ func (c *client) applyYAMLFile(namespace string, dryRun bool, file string) error
 		util.PrintFlagsWithDryRunStrategy(opts.PrintFlags, opts.DryRunStrategy)
 		return opts.PrintFlags.ToPrinter()
 	}
-
+	var err error
 	if len(namespace) > 0 {
 		opts.Namespace = namespace
 		opts.EnforceNamespace = true
 	} else {
-		var err error
-		opts.Namespace, opts.EnforceNamespace, err = c.clientFactory.ToRawKubeConfigLoader().Namespace()
-		if err != nil {
+		if opts.Namespace, opts.EnforceNamespace, err = c.clientFactory.ToRawKubeConfigLoader().Namespace(); err != nil {
 			return err
 		}
 	}
@@ -918,9 +916,7 @@ func (c *client) applyYAMLFile(namespace string, dryRun bool, file string) error
 
 	opts.OpenAPISchema, _ = c.clientFactory.OpenAPISchema()
 
-	var err error
-	opts.Validator, err = c.clientFactory.Validator(true)
-	if err != nil {
+	if opts.Validator, err = c.clientFactory.Validator(true); err != nil {
 		return err
 	}
 	opts.Builder = c.clientFactory.NewBuilder()

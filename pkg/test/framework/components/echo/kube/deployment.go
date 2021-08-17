@@ -158,14 +158,14 @@ spec:
 {{- if $.IncludeExtAuthz }}
       - name: ext-authz
         image: gcr.io/istio-testing/ext-authz:0.7
-        imagePullPolicy: {{ $.PullPolicy }}
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         - containerPort: 9000
 {{- end }}
       - name: app
         image: {{ $.Hub }}/app:{{ $.Tag }}
-        imagePullPolicy: {{ $.PullPolicy }}
+        imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 1338
           runAsGroup: 1338
@@ -347,7 +347,7 @@ spec:
       containers:
       - name: istio-proxy
         image: {{ $.Hub }}/{{ $.VM.Image }}:{{ $.Tag }}
-        imagePullPolicy: {{ $.PullPolicy }}
+        imagePullPolicy: IfNotPresent
         securityContext:
           capabilities:
             add:
@@ -666,10 +666,11 @@ func templateParams(cfg echo.Config, imgSettings *image.Settings, settings *reso
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("====image policy==%s", imgSettings.PullPolicy)
 	params := map[string]interface{}{
 		"Hub":                imgSettings.Hub,
 		"Tag":                strings.TrimSuffix(imgSettings.Tag, "-distroless"),
-		"PullPolicy":         imgSettings.PullPolicy,
+		"PullPolicy":         "IfNotPresent",
 		"Service":            cfg.Service,
 		"Version":            cfg.Version,
 		"Headless":           cfg.Headless,

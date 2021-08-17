@@ -219,7 +219,6 @@ func (c *ingressImpl) callEcho(options echo.CallOptions, retry bool, retryOption
 	} else {
 		addr, port = c.AddressForPort(options.Port.ServicePort)
 	}
-
 	if addr == "" || port == 0 {
 		scopes.Framework.Warnf("failed to get host and port for %s/%d", options.Port.Protocol, options.Port.ServicePort)
 	}

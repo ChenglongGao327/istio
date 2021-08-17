@@ -45,7 +45,7 @@ spec:
           readOnlyRootFilesystem: false
       - name: app
         image: testing.hub/app:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 1338
           runAsGroup: 1338

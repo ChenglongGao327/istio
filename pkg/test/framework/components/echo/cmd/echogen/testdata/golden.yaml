@@ -135,10 +135,10 @@ spec:
             port: tcp-health-port
         name: app
         ports:
-        - containerPort: 18080
-        - containerPort: 17070
-        - containerPort: 19090
-        - containerPort: 18443
+        - containerPort: 18089
+        - containerPort: 17079
+        - containerPort: 19099
+        - containerPort: 18449
         - containerPort: 16060
         - containerPort: 19091
         - containerPort: 16061

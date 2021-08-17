@@ -134,7 +134,6 @@ func getRemoteServiceAddress(s *kube.Settings, cluster cluster.Cluster, ns, labe
 		if len(svc.Spec.Ports) == 0 {
 			return nil, false, fmt.Errorf("no ports found in service: %s/%s", ns, svcName)
 		}
-
 		var nodePort int32
 		for _, svcPort := range svc.Spec.Ports {
 			if svcPort.Protocol == "TCP" && svcPort.Port == int32(port) {

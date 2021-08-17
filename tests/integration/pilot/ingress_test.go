@@ -18,6 +18,7 @@ package pilot
 import (
 	"context"
 	"fmt"
+	"istio.io/istio/pkg/test/scopes"
 	"net"
 	"os"
 	"path/filepath"
@@ -59,7 +60,9 @@ func TestGateway(t *testing.T) {
 			if err := t.Config().ApplyYAMLNoCleanup("", string(crd)); err != nil {
 				t.Fatal(err)
 			}
-			t.Config().ApplyYAMLOrFail(t, "", `
+			scopes.Framework.Infof("===============start install...")
+			retry.UntilSuccessOrFail(t, func() error {
+				err := t.Config().ApplyYAML("", `
 apiVersion: networking.x-k8s.io/v1alpha1
 kind: GatewayClass
 metadata:
@@ -89,7 +92,13 @@ spec:
         from: All
       kind: TCPRoute
 ---`)
-			t.Config().ApplyYAMLOrFail(t, apps.Namespace.Name(), `
+				scopes.Framework.Infof("===============end111 install...")
+				scopes.Framework.Infof("===============start222 install...")
+
+				return err
+			}, retry.Delay(time.Second*10), retry.Timeout(time.Second*90))
+			retry.UntilSuccessOrFail(t, func() error {
+				err := t.Config().ApplyYAML(apps.Namespace.Name(), `
 apiVersion: networking.x-k8s.io/v1alpha1
 kind: HTTPRoute
 metadata:
@@ -144,7 +153,9 @@ spec:
     - serviceName: b
       port: 80
 `)
-
+				return err
+			}, retry.Delay(time.Second*10), retry.Timeout(time.Second*90))
+			scopes.Framework.Infof("===============end222 install...")
 			t.NewSubTest("http").Run(func(t framework.TestContext) {
 				paths := []string{"/get", "/get/", "/get/prefix"}
 				for _, path := range paths {
@@ -163,11 +174,11 @@ spec:
 				host, port := apps.Ingress.TCPAddress()
 				_ = apps.Ingress.CallWithRetryOrFail(t, echo.CallOptions{
 					Port: &echo.Port{
-						Protocol:    protocol.HTTP,
-						ServicePort: port,
+						Protocol: protocol.TCP,
+						//ServicePort: port,
 					},
-					Address: host,
-					Path:    "/",
+					//Address: host,
+					Path: "/",
 					Headers: map[string][]string{
 						"Host": {"my.domain.example"},
 					},
