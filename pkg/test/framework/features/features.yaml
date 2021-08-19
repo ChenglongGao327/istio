@@ -37,6 +37,7 @@ features:
   # features relating to controlling the traffic of the service mesh.
   traffic:
     locality:
+    nodeLocalTraffic:
     reachability:
     shifting:
     routing:

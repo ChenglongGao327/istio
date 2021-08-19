@@ -359,7 +359,7 @@ func (c *Controller) unregisterWorkload(entryName string, proxy *model.Proxy, di
 		return fmt.Errorf("workloadentry %s/%s is not found, maybe deleted or because of propagate latency", proxy.Metadata.Namespace, entryName)
 	}
 
-	// only queue a delete if this disconnect event is associated with the last connect event written to the worload entry
+	// only queue a delete if this disconnect event is associated with the last connect event written to the workload entry
 	if mostRecentConn, err := time.Parse(timeFormat, cfg.Annotations[ConnectedAtAnnotation]); err == nil {
 		if mostRecentConn.After(origConnTime) {
 			// this disconnect event wasn't processed until after we successfully reconnected

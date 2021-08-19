@@ -70,14 +70,12 @@ func NewXdsServer(stop chan struct{}, gen model.XdsResourceGenerator) *xds.Disco
 		}
 
 		names := sets.NewSet(wr.ResourceNames...)
-		found := false
 		for name := range model.ConfigsOfKind(req.ConfigsUpdated, gvk.Secret) {
 			if names.Contains(name.Name) {
-				found = true
-				break
+				return true
 			}
 		}
-		return found
+		return false
 	}
 	s.DiscoveryServer.Start(stop)
 	return s.DiscoveryServer

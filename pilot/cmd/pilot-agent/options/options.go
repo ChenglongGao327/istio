@@ -115,4 +115,7 @@ var (
 	// certSigner is cert signer for workload cert
 	certSigner = env.RegisterStringVar("ISTIO_META_CERT_SIGNER", "",
 		"The cert signer info for workload cert")
+
+	dnsRecordTTLEnv = env.RegisterDurationVar("DNS_RECORD_TTL", 30*time.Second,
+		"In case the client decides to honor the TTL, keep it low so that we can always serve the latest IP for a host.")
 )

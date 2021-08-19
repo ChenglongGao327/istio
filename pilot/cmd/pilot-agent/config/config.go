@@ -91,7 +91,7 @@ func ConstructProxyConfig(meshConfigFile, serviceCluster, proxyConfigEnv string,
 // untouched fields will remain untouched. This means lists will be replaced, not appended to, for example.
 func getMeshConfig(fileOverride, annotationOverride, proxyConfigEnv string, isSidecar bool) (meshconfig.MeshConfig, error) {
 	mc := mesh.DefaultMeshConfig()
-	// Gateway default should be concurrency unset (ie listen on all threads)
+	// Gateway default should be concurrency unset (i.e. listen on all threads)
 	if !isSidecar {
 		mc.DefaultConfig.Concurrency = nil
 	}

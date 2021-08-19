@@ -152,7 +152,8 @@ spec:
 }}
       - name: istio-proxy
         image: auto
-        securityContext: # to allow core dumps
+        imagePullPolicy: {{ $.PullPolicy }} 
+        securityContext: # to allow core dumps111
           readOnlyRootFilesystem: false
 {{- end }}
 {{- if $.IncludeExtAuthz }}

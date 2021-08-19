@@ -467,7 +467,7 @@ func (a *Agent) Run(ctx context.Context) (func(), error) {
 }
 
 func (a *Agent) initLocalDNSServer() (err error) {
-	// we dont need dns server on gateways
+	// we don't need dns server on gateways
 	if a.cfg.DNSCapture && a.cfg.ProxyType == model.SidecarProxy {
 		if a.localDNSServer, err = dnsClient.NewLocalDNSServer(a.cfg.ProxyNamespace, a.cfg.ProxyDomain, a.cfg.DNSAddr); err != nil {
 			return err
@@ -538,28 +538,28 @@ func (a *Agent) FindRootCAForXDS() (string, error) {
 	if a.cfg.XDSRootCerts == security.SystemRootCerts {
 		// Special case input for root cert configuration to use system root certificates
 		return "", nil
-	} else if a.cfg.XDSRootCerts != "" {
-		// Using specific platform certs or custom roots
-		rootCAPath = a.cfg.XDSRootCerts
 	} else if fileExists(security.DefaultRootCertFilePath) {
 		// Old style - mounted cert. This is used for XDS auth only,
 		// not connecting to CA_ADDR because this mode uses external
 		// agent (Secret refresh, etc)
 		return security.DefaultRootCertFilePath, nil
-	} else if a.secOpts.PilotCertProvider == constants.CertProviderKubernetes {
-		// Using K8S - this is likely incorrect, may work by accident (https://github.com/istio/istio/issues/22161)
-		rootCAPath = k8sCAPath
 	} else if a.secOpts.ProvCert != "" {
 		// This was never completely correct - PROV_CERT are only intended for auth with CA_ADDR,
 		// and should not be involved in determining the root CA.
 		// For VMs, the root cert file used to auth may be populated afterwards.
 		// Thus, return directly here and skip checking for existence.
 		return a.secOpts.ProvCert + "/root-cert.pem", nil
+	} else if a.secOpts.PilotCertProvider == constants.CertProviderNone {
+		return "", fmt.Errorf("root CA file for XDS required but configured provider as none")
+	} else if a.cfg.XDSRootCerts != "" {
+		// Using specific platform certs or custom roots
+		rootCAPath = a.cfg.XDSRootCerts
+	} else if a.secOpts.PilotCertProvider == constants.CertProviderKubernetes {
+		// Using K8S - this is likely incorrect, may work by accident (https://github.com/istio/istio/issues/22161)
+		rootCAPath = k8sCAPath
 	} else if a.secOpts.FileMountedCerts {
 		// FileMountedCerts - Load it from Proxy Metadata.
 		rootCAPath = a.proxyConfig.ProxyMetadata[MetadataClientRootCert]
-	} else if a.secOpts.PilotCertProvider == constants.CertProviderNone {
-		return "", fmt.Errorf("root CA file for XDS required but configured provider as none")
 	} else {
 		// PILOT_CERT_PROVIDER - default is istiod
 		// This is the default - a mounted config map on K8S

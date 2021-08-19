@@ -313,7 +313,7 @@ func (p *Plugin) sendRequestWithRetry(req *http.Request) (resp *http.Response, e
 		if resp != nil && resp.StatusCode == http.StatusOK {
 			return resp, time.Since(start), err
 		}
-		if resp != nil && resp.StatusCode >= http.StatusBadRequest && resp.StatusCode < http.StatusInternalServerError {
+		if resp != nil && resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			return resp, time.Since(start), err
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -481,7 +481,9 @@ func (p *Plugin) DumpPluginStatus() ([]byte, error) {
 	p.tokens.Range(func(k interface{}, v interface{}) bool {
 		token := v.(stsservice.TokenInfo)
 		tokenStatus = append(tokenStatus, stsservice.TokenInfo{
-			TokenType: token.TokenType, IssueTime: token.IssueTime, ExpireTime: token.ExpireTime,
+			TokenType:  token.TokenType,
+			IssueTime:  token.IssueTime,
+			ExpireTime: token.ExpireTime,
 		})
 		return true
 	})

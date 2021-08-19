@@ -295,6 +295,7 @@ func setupDashboardTest(done <-chan struct{}) {
 	// Send 200 http requests, 20 tcp requests across goroutines, generating a variety of error codes.
 	// Spread out over 20s so rate() queries will behave correctly
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	times := 0
 	for {
 		select {

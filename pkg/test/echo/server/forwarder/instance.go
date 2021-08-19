@@ -99,6 +99,7 @@ func (i *Instance) Run(ctx context.Context) (*proto.ForwardEchoResponse, error) 
 		sleepTime := time.Second / time.Duration(i.qps)
 		fwLog.Debugf("Sleeping %v between requests", sleepTime)
 		throttle = time.NewTicker(sleepTime)
+		defer throttle.Stop()
 	}
 
 	// make the timeout apply to the entire set of requests

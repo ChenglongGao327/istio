@@ -52,6 +52,7 @@ type LocalDNSServer struct {
 	proxyDomain      string
 	proxyDomainParts []string
 	addr             string
+	dnsRecordTTL     uint32
 }
 
 // LookupTable is borrowed from https://github.com/coredns/coredns/blob/master/plugin/hosts/hostsfile.go
@@ -71,11 +72,12 @@ type LookupTable struct {
 	// The cname records here (comprised of different variants of the hosts above,
 	// expanded by the search namespaces) pointing to the actual host.
 	cname map[string][]dns.RR
+
+	dnsTTL uint32
 }
 
 const (
-	// In case the client decides to honor the TTL, keep it low so that we can always serve
-	// the latest IP for a host.
+	// In case the client decides to honor the TTL, keep it low so that we can always serve the latest IP for a host.
 	// TODO: make it configurable
 	defaultTTLInSeconds = 30
 )
@@ -152,12 +154,13 @@ func (h *LocalDNSServer) StartDNS() {
 	go h.tcpDNSProxy.start()
 }
 
-func (h *LocalDNSServer) UpdateLookupTable(nt *dnsProto.NameTable) {
+func (h *LocalDNSServer) UpdateLookupTable(nt *dnsProto.NameTable, dnsTTL uint32) {
 	lookupTable := &LookupTable{
 		allHosts: map[string]struct{}{},
 		name4:    map[string][]dns.RR{},
 		name6:    map[string][]dns.RR{},
 		cname:    map[string][]dns.RR{},
+		dnsTTL:   dnsTTL,
 	}
 	for hostname, ni := range nt.Table {
 		// Given a host
@@ -182,7 +185,7 @@ func (h *LocalDNSServer) UpdateLookupTable(nt *dnsProto.NameTable) {
 	log.Debugf("updated lookup table with %d hosts", len(lookupTable.allHosts))
 }
 
-// upstrem sends the requeset to the upstream server, with associated logs and metrics
+// upstream sends the request to the upstream server, with associated logs and metrics
 func (h *LocalDNSServer) upstream(proxy *dnsProxy, req *dns.Msg, hostname string) *dns.Msg {
 	upstreamRequests.Increment()
 	start := time.Now()
@@ -244,7 +247,7 @@ func (h *LocalDNSServer) ServeDNS(proxy *dnsProxy, w dns.ResponseWriter, req *dn
 		response.Authoritative = true
 		// Even if answers is empty, we still return NOERROR. This matches expected behavior of DNS
 		// servers. NXDOMAIN means we do not know *anything* about the domain; if we set it here then
-		// a client (ie curl, see https://github.com/istio/istio/issues/31250) sending parallel
+		// a client (i.e. curl, see https://github.com/istio/istio/issues/31250) sending parallel
 		// requests for A and AAAA may get NXDOMAIN for AAAA and treat the entire thing as a NXDOMAIN
 		response.Answer = answers
 		// Randomize the responses; this ensures for things like headless services we can do DNS-LB
@@ -492,10 +495,10 @@ func (table *LookupTable) buildDNSAnswers(altHosts map[string]struct{}, ipv4 []n
 		h = strings.ToLower(h)
 		table.allHosts[h] = struct{}{}
 		if len(ipv4) > 0 {
-			table.name4[h] = a(h, ipv4)
+			table.name4[h] = a(h, ipv4, table.dnsTTL)
 		}
 		if len(ipv6) > 0 {
-			table.name6[h] = aaaa(h, ipv6)
+			table.name6[h] = aaaa(h, ipv6, table.dnsTTL)
 		}
 		if len(searchNamespaces) > 0 {
 			// NOTE: Right now, rather than storing one expanded host for each one of the search namespace
@@ -513,7 +516,7 @@ func (table *LookupTable) buildDNSAnswers(altHosts map[string]struct{}, ipv4 []n
 			// then the expanded host productpage.ns1.svc.cluster.local is a valid hostname
 			// that is likely to be already present in the altHosts
 			if _, exists := altHosts[expandedHost]; !exists {
-				table.cname[expandedHost] = cname(expandedHost, h)
+				table.cname[expandedHost] = cname(expandedHost, h, table.dnsTTL)
 				table.allHosts[expandedHost] = struct{}{}
 			}
 		}
@@ -522,11 +525,11 @@ func (table *LookupTable) buildDNSAnswers(altHosts map[string]struct{}, ipv4 []n
 
 // Borrowed from https://github.com/coredns/coredns/blob/master/plugin/hosts/hosts.go
 // a takes a slice of net.IPs and returns a slice of A RRs.
-func a(host string, ips []net.IP) []dns.RR {
+func a(host string, ips []net.IP, ttl uint32) []dns.RR {
 	answers := make([]dns.RR, len(ips))
 	for i, ip := range ips {
 		r := new(dns.A)
-		r.Hdr = dns.RR_Header{Name: host, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: defaultTTLInSeconds}
+		r.Hdr = dns.RR_Header{Name: host, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl}
 		r.A = ip
 		answers[i] = r
 	}
@@ -534,24 +537,24 @@ func a(host string, ips []net.IP) []dns.RR {
 }
 
 // aaaa takes a slice of net.IPs and returns a slice of AAAA RRs.
-func aaaa(host string, ips []net.IP) []dns.RR {
+func aaaa(host string, ips []net.IP, ttl uint32) []dns.RR {
 	answers := make([]dns.RR, len(ips))
 	for i, ip := range ips {
 		r := new(dns.AAAA)
-		r.Hdr = dns.RR_Header{Name: host, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: defaultTTLInSeconds}
+		r.Hdr = dns.RR_Header{Name: host, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: ttl}
 		r.AAAA = ip
 		answers[i] = r
 	}
 	return answers
 }
 
-func cname(host string, targetHost string) []dns.RR {
+func cname(host string, targetHost string, ttl uint32) []dns.RR {
 	answer := new(dns.CNAME)
 	answer.Hdr = dns.RR_Header{
 		Name:   host,
 		Rrtype: dns.TypeCNAME,
 		Class:  dns.ClassINET,
-		Ttl:    defaultTTLInSeconds,
+		Ttl:    ttl,
 	}
 	answer.Target = targetHost
 	return []dns.RR{answer}
