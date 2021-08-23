@@ -46,6 +46,7 @@ func TestXFFGateway(t *testing.T) {
 			templateParams := map[string]string{
 				"imagePullSecret": image.PullSecretNameOrFail(t),
 				"injectLabel":     injectLabel,
+				"pullPolicy":      image.PullImagePolicy(),
 			}
 
 			t.Config().ApplyYAMLOrFail(t, gatewayNs.Name(), tmpl.MustEvaluate(`apiVersion: v1
@@ -87,7 +88,7 @@ spec:
       containers:
       - name: istio-proxy
         image: auto
-        imagePullPolicy: {{ .PullPolicy }}
+        imagePullPolicy: {{ .pullPolicy }}
 ---
 `, templateParams))
 			cs := t.Clusters().Default().(*kubecluster.Cluster)
