@@ -670,6 +670,7 @@ spec:
       containers:
       - name: istio-proxy
         image: auto
+        imagePullPolicy: {{ .PullPolicy }}
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway

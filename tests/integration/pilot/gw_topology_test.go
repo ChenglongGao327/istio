@@ -87,6 +87,7 @@ spec:
       containers:
       - name: istio-proxy
         image: auto
+        imagePullPolicy: {{ .PullPolicy }}
 ---
 `, templateParams))
 			cs := t.Clusters().Default().(*kubecluster.Cluster)
