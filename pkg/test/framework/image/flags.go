@@ -37,6 +37,9 @@ func SettingsFromCommandLine() (*Settings, error) {
 	}
 
 	s := settingsFromCommandLine.clone()
+	fmt.Println("policy==", s.PullPolicy)
+	fmt.Println("hub==", s.Hub)
+	fmt.Println("tag==", s.Tag)
 
 	if s.PullPolicy == "" {
 		// Default to pull-always

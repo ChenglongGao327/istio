@@ -313,6 +313,7 @@ func newHelmValues(ctx resource.Context, s *image.Settings) (map[string]string, 
 
 	// Always pull Docker images if using the "latest".
 	if values[image.TagValuesKey] == image.LatestTag {
+		scopes.Framework.Infof("tag===image", s.PullPolicy)
 		values[image.ImagePullPolicyValuesKey] = string(kubeCore.PullAlways)
 	}
 
