@@ -75,6 +75,9 @@ metadata:
 {{- end }}
 {{- end }}
 spec:
+{{- if .InternalTrafficPolicy }}
+  internalTrafficPolicy: {{ .InternalTrafficPolicy }}
+{{- end }}
 {{- if .Headless }}
   clusterIP: None
 {{- end }}
@@ -92,6 +95,8 @@ spec:
 {{- $revVerMap := .Revisions }}
 {{- $subsets := .Subsets }}
 {{- $cluster := .Cluster }}
+{{- $podAffinity := .PodAffinity }}
+{{- $podAntiAffinity := .PodAntiAffinity }}
 {{- range $i, $subset := $subsets }}
 {{- range $revision, $version := $revVerMap }}
 apiVersion: apps/v1
@@ -137,6 +142,29 @@ spec:
         {{ $name.Name }}: {{ printf "%q" $value.Value }}
 {{- end }}
     spec:
+{{- if or $.PodAffinity (or $.PodAntiAffinity) }}
+      affinity:
+{{- end }}
+{{- if $.PodAffinity }}
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+{{- range $key, $val := $podAffinity }}
+                {{ $key }}: {{ $val }}
+{{- end }}
+            topologyKey: "kubernetes.io/hostname"
+{{- end }}
+{{- if $.PodAntiAffinity }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+{{- range $key, $val := $podAntiAffinity }}
+                {{ $key }}: {{ $val }}
+{{- end }}
+            topologyKey: "kubernetes.io/hostname"
+{{- end }}
 {{- if $.ServiceAccount }}
       serviceAccountName: {{ $.Service }}
 {{- end }}
@@ -668,27 +696,30 @@ func templateParams(cfg echo.Config, imgSettings *image.Settings, settings *reso
 		return nil, err
 	}
 	params := map[string]interface{}{
-		"Hub":                imgSettings.Hub,
-		"Tag":                strings.TrimSuffix(imgSettings.Tag, "-distroless"),
-		"PullPolicy":         imgSettings.PullPolicy,
-		"Service":            cfg.Service,
-		"Version":            cfg.Version,
-		"Headless":           cfg.Headless,
-		"StatefulSet":        cfg.StatefulSet,
-		"ProxylessGRPC":      cfg.IsProxylessGRPC(),
-		"GRPCMagicPort":      grpcMagicPort,
-		"Locality":           cfg.Locality,
-		"ServiceAccount":     cfg.ServiceAccount,
-		"Ports":              cfg.Ports,
-		"WorkloadOnlyPorts":  cfg.WorkloadOnlyPorts,
-		"ContainerPorts":     getContainerPorts(cfg),
-		"ServiceAnnotations": cfg.ServiceAnnotations,
-		"Subsets":            cfg.Subsets,
-		"TLSSettings":        cfg.TLSSettings,
-		"Cluster":            cfg.Cluster.Name(),
-		"Namespace":          namespace,
-		"ImagePullSecret":    imagePullSecret,
-		"ReadinessTCPPort":   cfg.ReadinessTCPPort,
+		"Hub":                   imgSettings.Hub,
+		"Tag":                   strings.TrimSuffix(imgSettings.Tag, "-distroless"),
+		"PullPolicy":            imgSettings.PullPolicy,
+		"PodAffinity":           cfg.PodAffinity,
+		"PodAntiAffinity":       cfg.PodAntiAffinity,
+		"InternalTrafficPolicy": cfg.InternalTrafficPolicy,
+		"Service":               cfg.Service,
+		"Version":               cfg.Version,
+		"Headless":              cfg.Headless,
+		"StatefulSet":           cfg.StatefulSet,
+		"ProxylessGRPC":         cfg.IsProxylessGRPC(),
+		"GRPCMagicPort":         grpcMagicPort,
+		"Locality":              cfg.Locality,
+		"ServiceAccount":        cfg.ServiceAccount,
+		"Ports":                 cfg.Ports,
+		"WorkloadOnlyPorts":     cfg.WorkloadOnlyPorts,
+		"ContainerPorts":        getContainerPorts(cfg),
+		"ServiceAnnotations":    cfg.ServiceAnnotations,
+		"Subsets":               cfg.Subsets,
+		"TLSSettings":           cfg.TLSSettings,
+		"Cluster":               cfg.Cluster.Name(),
+		"Namespace":             namespace,
+		"ImagePullSecret":       imagePullSecret,
+		"ReadinessTCPPort":      cfg.ReadinessTCPPort,
 		"VM": map[string]interface{}{
 			"Image": vmImage,
 		},

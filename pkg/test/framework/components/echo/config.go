@@ -62,6 +62,13 @@ type Config struct {
 	// Domain of the echo Instance. If not provided, a default will be selected.
 	Domain string
 
+	PodAffinity map[string]string
+
+	PodAntiAffinity map[string]string
+
+	// request k8s version >= 1.21, Local or Cluster can be set.
+	InternalTrafficPolicy string
+
 	// Service indicates the service name of the Echo application.
 	Service string
 
