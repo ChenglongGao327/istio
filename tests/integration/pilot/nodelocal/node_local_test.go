@@ -20,6 +20,9 @@ package nodelocal
 import (
 	"context"
 	"fmt"
+	"istio.io/istio/pkg/test/framework/components/echo/common"
+	"istio.io/istio/pkg/test/framework/components/echo/echoboot"
+	pilotcommon "istio.io/istio/tests/integration/pilot/common"
 	"testing"
 	"time"
 
@@ -29,11 +32,6 @@ import (
 	"istio.io/istio/pkg/test/framework"
 	kubecluster "istio.io/istio/pkg/test/framework/components/cluster/kube"
 	"istio.io/istio/pkg/test/framework/components/echo"
-	"istio.io/istio/pkg/test/framework/components/echo/common"
-	"istio.io/istio/pkg/test/framework/components/echo/echoboot"
-	kubetest "istio.io/istio/pkg/test/kube"
-	"istio.io/istio/pkg/test/util/retry"
-	pilotcommon "istio.io/istio/tests/integration/pilot/common"
 )
 
 func TestNodeLocal(t *testing.T) {
@@ -51,10 +49,8 @@ func TestNodeLocal(t *testing.T) {
 			if err != nil {
 				t.Fatalf("get node failed == %v", err)
 			}
-			t.Logf("****cluster node****%s", node.Items[0].Name)
-			t.Logf("****cluster node****%s", len(node.Items))
 			if len(node.Items) < 2 {
-				t.Logf("the cluster node is less 2, skip this test.")
+				t.Skipf("Skipping %q: number of node in cluster is %d less 2, skip this test.", t.Name(), len(node.Items))
 			}
 
 			builder := echoboot.NewBuilder(t, cluster).
@@ -87,28 +83,16 @@ func TestNodeLocal(t *testing.T) {
 					WorkloadOnlyPorts:     common.WorkloadPorts,
 					InternalTrafficPolicy: "Local",
 				})
+
 			echos, err := builder.Build()
 			if err != nil {
-				t.Fatalf("create deployment failed")
+				t.Fatalf("create deployments failed")
 			}
 			apps.All = echos
 			apps.PodA = echos.Match(echo.Service(pilotcommon.PodASvc))
 			apps.PodB = echos.Match(echo.Service(pilotcommon.PodBSvc))
 			apps.PodC = echos.Match(echo.Service(pilotcommon.PodCSvc))
-
-			retry.UntilSuccessOrFail(t, func() error {
-				_, err := kubetest.CheckPodsAreReady(kubetest.NewPodFetch(cluster, apps.Namespace.Name(), "app=a"))
-				return err
-			}, retry.Timeout(time.Minute*2), retry.Delay(time.Second))
-			retry.UntilSuccessOrFail(t, func() error {
-				_, err := kubetest.CheckPodsAreReady(kubetest.NewPodFetch(cluster, apps.Namespace.Name(), "app=b"))
-				return err
-			}, retry.Timeout(time.Minute*2), retry.Delay(time.Second))
-			retry.UntilSuccessOrFail(t, func() error {
-				_, err := kubetest.CheckPodsAreReady(kubetest.NewPodFetch(cluster, apps.Namespace.Name(), "app=c"))
-				return err
-			}, retry.Timeout(time.Minute*2), retry.Delay(time.Second))
-
+			time.Sleep(5 * time.Second)
 			// on same node can access service C when service C set NodeLocalTraffic=Local
 			apps.PodA[0].CallWithRetryOrFail(t, echo.CallOptions{
 				Port:      &echo.Port{ServicePort: 80},
