@@ -219,7 +219,7 @@ spec:
           - --version
           - "{{ $subset.Version }}"
           - --istio-version
-          - "{{ $version }}"
+          - "{{ $.Version }}"
 {{- if $.TLSSettings }}
           - --crt=/etc/certs/custom/cert-chain.pem
           - --key=/etc/certs/custom/key.pem
@@ -239,6 +239,16 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
 {{- if $.ProxylessGRPC }}
         - name: EXPOSE_GRPC_ADMIN
           value: "true"
@@ -427,6 +437,16 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
         volumeMounts:
         - mountPath: /var/run/secrets/tokens
           name: {{ $.Service }}-istio-token
