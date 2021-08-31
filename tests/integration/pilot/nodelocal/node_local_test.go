@@ -72,63 +72,77 @@ func TestNodeLocal(t *testing.T) {
 				Inject: true,
 			})
 
-			sameNode := func(responses client.ParsedResponses, srcNodeName, cluster string) bool {
-				if (responses.CheckCluster(cluster) == nil) && (responses.CheckNodeName(srcNodeName) == nil) {
-					return true
-				}
-				return false
-			}
-
-			ExpectClusterAndCode := func(expectCluster string, src echo.Instance, nodeLocal bool) echo.Validator {
-				return echo.ValidatorFunc(func(responses client.ParsedResponses, _ error) error {
-					var srcNodeName string
-					if src != nil {
-						srcNodeNames, _ := src.Workloads()
-						if len(srcNodeNames) != 0 {
-							srcNodeName = srcNodeNames[0].NodeName()
-						}
-					}
-					sameNode := sameNode(responses, srcNodeName, expectCluster)
-					if (sameNode || !nodeLocal) && responses.CheckCode("200") == nil {
-						return nil
-					}
-					if (!sameNode && nodeLocal) && responses.CheckCode("503") == nil {
-						return nil
-					}
-					return errors.New("unexpect response code")
-				})
-			}
-
 			echos, _ = echoboot.NewBuilder(t).
 				WithClusters(t.Clusters()...).
 				WithConfig(echo.Config{
 					Service:   common.PodASvc,
 					Namespace: apps.Namespace,
 					Ports:     pilotcommont.EchoPorts,
+				}).
+				WithConfig(echo.Config{
+					Service:   common.PodBSvc,
+					Namespace: apps.Namespace,
+					Ports:     pilotcommont.EchoPorts,
 				}).Build()
 
-			common.TrafficTestCase{
-				Opts: echo.CallOptions{PortName: "http"},
-				Validate: func(src echo.Caller, dst echo.Instances) echo.Validator {
-					return ExpectClusterAndCode(src.(echo.Instance).Config().Cluster.Name(), src.(echo.Instance), false)
-				},
-			}.RunForApps(t, echos, apps.Namespace.Name())
+			trafficCase := trafficTestCase(false)
+			trafficCase.RunForApps(t, echos, apps.Namespace.Name())
 
 			// When nodeLocalSvcC sets `InternalTrafficPolicy=Local`, it only can be accessed by the same node instance(nodeLocalSvcA).
 			echos, _ = echoboot.NewBuilder(t).
 				WithClusters(t.Clusters()...).
 				WithConfig(echo.Config{
-					Service:               common.PodASvc,
+					Service:   common.PodASvc,
+					Namespace: apps.Namespace,
+					Ports:     pilotcommont.EchoPorts,
+				}).
+				WithConfig(echo.Config{
+					Service:               common.PodBSvc,
 					Namespace:             apps.Namespace,
 					Ports:                 pilotcommont.EchoPorts,
 					InternalTrafficPolicy: "Local",
 				}).Build()
 
-			common.TrafficTestCase{
-				Opts: echo.CallOptions{PortName: "http"},
-				Validate: func(src echo.Caller, dst echo.Instances) echo.Validator {
-					return ExpectClusterAndCode(src.(echo.Instance).Config().Cluster.Name(), src.(echo.Instance), true)
-				},
-			}.RunForApps(t, echos, apps.Namespace.Name())
+			trafficCase = trafficTestCase(true)
+			trafficCase.RunForApps(t, echos, apps.Namespace.Name())
 		})
+}
+
+func trafficTestCase(nodeLocal bool) common.TrafficTestCase {
+	return common.TrafficTestCase{
+		Opts: echo.CallOptions{PortName: "http"},
+		Validate: func(src echo.Caller, dst echo.Instances) echo.Validator {
+			return validResponse(src.(echo.Instance).Config().Cluster.Name(), src.(echo.Instance), nodeLocal)
+		},
+	}
+}
+
+func validResponse(expectCluster string, src echo.Instance, nodeLocal bool) echo.Validator {
+	return echo.ValidatorFunc(func(responses client.ParsedResponses, _ error) error {
+		var srcNodeName string
+		if src != nil {
+			srcNodeNames, _ := src.Workloads()
+			if len(srcNodeNames) != 0 {
+				srcNodeName = srcNodeNames[0].NodeName()
+			}
+		}
+		sameNode := sameNode(responses, srcNodeName, expectCluster)
+		if (sameNode || !nodeLocal) && responses.CheckCode("200") == nil {
+			return nil
+		}
+		if (!sameNode && nodeLocal) && responses.CheckCode("503") == nil {
+			return nil
+		}
+		return errors.New("unexpect response code")
+	})
+}
+
+func sameNode(responses client.ParsedResponses, srcNodeName, cluster string) bool {
+	if responses.CheckCluster(cluster) != nil {
+		return false
+	}
+	if responses.CheckNodeName(srcNodeName) != nil {
+		return false
+	}
+	return true
 }
