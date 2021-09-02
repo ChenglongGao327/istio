@@ -536,9 +536,14 @@ update-crds:
 # deb, rpm, etc packages
 include tools/packaging/packaging.mk
 
+import-boss:
+	hack/verify-import-boss.sh
+
+
 #-----------------------------------------------------------------------------
 # Target: integration tests
 #-----------------------------------------------------------------------------
 include tests/integration/tests.mk
 
 include common/Makefile.common.mk
+

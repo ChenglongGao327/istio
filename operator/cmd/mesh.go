@@ -17,6 +17,7 @@ package main
 import (
 	"os"
 
+	_ "istio.io/istio/istioctl/cmd"
 	"istio.io/istio/operator/cmd/mesh"
 	binversion "istio.io/istio/operator/version"
 	"istio.io/pkg/version"

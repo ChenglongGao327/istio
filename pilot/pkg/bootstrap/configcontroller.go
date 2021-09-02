@@ -168,7 +168,7 @@ func (s *Server) initK8SConfigStore(args *PilotArgs) error {
 					log.Infof("Starting gateway status writer")
 					gwc.SetStatusWrite(true)
 					<-leaderStop
-					log.Infof("Stoppping gateway status writer")
+					log.Infof("Stopping gateway status writer")
 					gwc.SetStatusWrite(false)
 				}).
 				Run(stop)
