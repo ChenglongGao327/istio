@@ -18,10 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Unset CDPATH so that path interpolation can work correctly
-# https://github.com/ISTIOrnetes/kubernetes/issues/52255
-unset CDPATH
-
 export GO111MODULE=off
 
 # The root of the build/dist directory
@@ -31,16 +27,9 @@ ISTIO_OUTPUT_SUBPATH="${ISTIO_OUTPUT_SUBPATH:-_output/local}"
 ISTIO_OUTPUT="${ISTIO_ROOT}/${ISTIO_OUTPUT_SUBPATH}"
 ISTIO_OUTPUT_BINPATH="${ISTIO_OUTPUT}/bin"
 
-# This controls rsync compression. Set to a value > 0 to enable rsync
-# compression for build container
-ISTIO_RSYNC_COMPRESS="${ISTIO_RSYNC_COMPRESS:-0}"
-
 # Set no_proxy for localhost if behind a proxy, otherwise,
 # the connections to localhost in scripts will time out
 export no_proxy="127.0.0.1,localhost${no_proxy:+,${no_proxy}}"
-
-# This is a symlink to binaries for "this platform", e.g. build tools.
-export THIS_PLATFORM_BIN="${ISTIO_ROOT}/_output/bin"
 
 source "${ISTIO_ROOT}/hack/lib/util.sh"
 source "${ISTIO_ROOT}/hack/lib/logging.sh"
@@ -48,10 +37,6 @@ source "${ISTIO_ROOT}/hack/lib/logging.sh"
 ISTIO::log::install_errexit
 
 source "${ISTIO_ROOT}/hack/lib/golang.sh"
-
-ISTIO_OUTPUT_HOSTBIN="${ISTIO_OUTPUT_BINPATH}/$(ISTIO::util::host_platform)"
-export ISTIO_OUTPUT_HOSTBIN
-
 
 # This emulates "readlink -f" which is not available on MacOS X.
 # Test:

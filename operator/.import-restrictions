@@ -3,5 +3,5 @@ rules:
     allowedPrefixes:
       - ''
     forbiddenPrefixes:
-      - istio.io/istio/istioctl
+      - istio.io/istio/pilot
 

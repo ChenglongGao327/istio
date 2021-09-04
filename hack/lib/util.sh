@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2014 The ISTIOrnetes Authors.
+# Copyright 2014 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,57 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-function ISTIO::util::sourced_variable {
-  # Call this function to tell shellcheck that a variable is supposed to
-  # be used from other calling context. This helps quiet an "unused
-  # variable" warning from shellcheck and also document your code.
-  true
-}
-
-# arguments: target, item1, item2, item3, ...
-# returns 0 if target is in the given items, 1 otherwise.
-ISTIO::util::array_contains() {
-  local search="$1"
-  local element
-  shift
-  for element; do
-    if [[ "${element}" == "${search}" ]]; then
-      return 0
-     fi
-  done
-  return 1
-}
-
-# Example:  ISTIO::util::trap_add 'echo "in trap DEBUG"' DEBUG
-# See: http://stackoverflow.com/questions/3338030/multiple-bash-traps-for-the-same-signal
-ISTIO::util::trap_add() {
-  local trap_add_cmd
-  trap_add_cmd=$1
-  shift
-
-  for trap_add_name in "$@"; do
-    local existing_cmd
-    local new_cmd
-
-    # Grab the currently defined trap commands for this trap
-    existing_cmd=$(trap -p "${trap_add_name}" |  awk -F"'" '{print $2}')
-
-    if [[ -z "${existing_cmd}" ]]; then
-      new_cmd="${trap_add_cmd}"
-    else
-      new_cmd="${trap_add_cmd};${existing_cmd}"
-    fi
-
-    # Assign the test. Disable the shellcheck warning telling that trap
-    # commands should be single quoted to avoid evaluating them at this
-    # point instead evaluating them at run time. The logic of adding new
-    # commands to a single trap requires them to be evaluated right away.
-    # shellcheck disable=SC2064
-    trap "${new_cmd}" "${trap_add_name}"
-  done
-}
-
 
 ISTIO::util::host_os() {
   local host_os
@@ -162,41 +111,3 @@ ISTIO::util::find-binary-for-platform() {
 ISTIO::util::find-binary() {
   ISTIO::util::find-binary-for-platform "$1" "$(ISTIO::util::host_platform)"
 }
-
-# ISTIO::util::read-array
-# Reads in stdin and adds it line by line to the array provided. This can be
-# used instead of "mapfile -t", and is bash 3 compatible.
-#
-# Assumed vars:
-#   $1 (name of array to create/modify)
-#
-# Example usage:
-# ISTIO::util::read-array files < <(ls -1)
-#
-function ISTIO::util::read-array {
-  local i=0
-  unset -v "$1"
-  while IFS= read -r "$1[i++]"; do :; done
-  eval "[[ \${$1[--i]} ]]" || unset "$1[i]" # ensures last element isn't empty
-}
-
-# Some useful colors.
-if [[ -z "${color_start-}" ]]; then
-  declare -r color_start="\033["
-  declare -r color_red="${color_start}0;31m"
-  declare -r color_yellow="${color_start}0;33m"
-  declare -r color_green="${color_start}0;32m"
-  declare -r color_blue="${color_start}1;34m"
-  declare -r color_cyan="${color_start}1;36m"
-  declare -r color_norm="${color_start}0m"
-
-  ISTIO::util::sourced_variable "${color_start}"
-  ISTIO::util::sourced_variable "${color_red}"
-  ISTIO::util::sourced_variable "${color_yellow}"
-  ISTIO::util::sourced_variable "${color_green}"
-  ISTIO::util::sourced_variable "${color_blue}"
-  ISTIO::util::sourced_variable "${color_cyan}"
-  ISTIO::util::sourced_variable "${color_norm}"
-fi
-
-# ex: ts=2 sw=2 et filetype=sh

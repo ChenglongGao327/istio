@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2014 The ISTIOrnetes Authors.
+# Copyright 2014 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,27 +50,6 @@ ISTIO::log::install_errexit() {
   set -o errtrace
 }
 
-# Print out the stack trace
-#
-# Args:
-#   $1 The number of stack frames to skip when printing.
-ISTIO::log::stack() {
-  local stack_skip=${1:-0}
-  stack_skip=$((stack_skip + 1))
-  if [[ ${#FUNCNAME[@]} -gt ${stack_skip} ]]; then
-    echo "Call stack:" >&2
-    local i
-    for ((i=1 ; i <= ${#FUNCNAME[@]} - stack_skip ; i++))
-    do
-      local frame_no=$((i - 1 + stack_skip))
-      local source_file=${BASH_SOURCE[${frame_no}]}
-      local source_lineno=${BASH_LINENO[$((frame_no - 1))]}
-      local funcname=${FUNCNAME[${frame_no}]}
-      echo "  ${i}: ${source_file}:${source_lineno} ${funcname}(...)" >&2
-    done
-  fi
-}
-
 # Log an error and exit.
 # Args:
 #   $1 Message to log with the error
@@ -108,16 +87,6 @@ ISTIO::log::error() {
   done
 }
 
-# Print an usage message to stderr.  The arguments are printed directly.
-ISTIO::log::usage() {
-  echo >&2
-  local message
-  for message; do
-    echo "${message}" >&2
-  done
-  echo >&2
-}
-
 ISTIO::log::usage_from_stdin() {
   local messages=()
   while read -r line; do
@@ -125,47 +94,4 @@ ISTIO::log::usage_from_stdin() {
   done
 
   ISTIO::log::usage "${messages[@]}"
-}
-
-# Print out some info that isn't a top level status line
-ISTIO::log::info() {
-  local V="${V:-0}"
-  if [[ ${ISTIO_VERBOSE} < ${V} ]]; then
-    return
-  fi
-
-  for message; do
-    echo "${message}"
-  done
-}
-
-# Just like ISTIO::log::info, but no \n, so you can make a progress bar
-ISTIO::log::progress() {
-  for message; do
-    echo -e -n "${message}"
-  done
-}
-
-ISTIO::log::info_from_stdin() {
-  local messages=()
-  while read -r line; do
-    messages+=("${line}")
-  done
-
-  ISTIO::log::info "${messages[@]}"
-}
-
-# Print a status line.  Formatted to show up in a stream of output.
-ISTIO::log::status() {
-  local V="${V:-0}"
-  if [[ ${ISTIO_VERBOSE} < ${V} ]]; then
-    return
-  fi
-
-  timestamp=$(date +"[%m%d %H:%M:%S]")
-  echo "+++ ${timestamp} ${1}"
-  shift
-  for message; do
-    echo "    ${message}"
-  done
 }
